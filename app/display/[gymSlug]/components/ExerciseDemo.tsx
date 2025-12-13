@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { getExerciseDemo, normalizeToSlug, type ExerciseDemo } from '@/lib/exercises/exerciseRegistry'
+import { useEffect, useState } from 'react'
+import { getExerciseDemo, normalizeToSlug } from '@/lib/exercises/exerciseRegistry'
+import { ExerciseAnimation } from '@/components/exercises/ExerciseAnimation'
 
 interface ExerciseDemoProps {
   exerciseName: string
@@ -10,13 +11,11 @@ interface ExerciseDemoProps {
 
 /**
  * Exercise Demo Component
- * Displays exercise demos based on registry entry
- * - Frames: animated keyframes
- * - Icon: static SVG icon
- * - Text: fallback text label
+ * Displays exercise demos using Lottie animations or placeholders
  */
 export function ExerciseDemo({ exerciseName, isPaused }: ExerciseDemoProps) {
-  const [currentFrameIndex, setCurrentFrameIndex] = useState(0)
+  const [animationData, setAnimationData] = useState<object | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const demo = getExerciseDemo(exerciseName)
 
   // Dev logging for missing mappings
@@ -27,79 +26,53 @@ export function ExerciseDemo({ exerciseName, isPaused }: ExerciseDemoProps) {
     }
   }, [exerciseName, demo])
 
-  // Animate frames if demo is frames type and not paused
+  // Load Lottie animation data dynamically
   useEffect(() => {
-    if (!demo || demo.demo.kind !== 'frames' || isPaused) {
-      return
+    if (demo && demo.demo.kind === 'lottie') {
+      const lottieDemo = demo.demo as Extract<typeof demo.demo, { kind: 'lottie' }>
+      setIsLoading(true)
+      fetch(lottieDemo.lottieFile)
+        .then((res) => res.json())
+        .then((data) => {
+          setAnimationData(data)
+          setIsLoading(false)
+        })
+        .catch((err) => {
+          console.error(`[ExerciseDemo] Failed to load animation: ${lottieDemo.lottieFile}`, err)
+          setIsLoading(false)
+        })
+    } else {
+      setAnimationData(null)
+    }
+  }, [demo])
+
+  // Render Lottie animation if available
+  if (demo && demo.demo.kind === 'lottie') {
+    if (isLoading) {
+      return (
+        <div className="w-full max-w-md aspect-square bg-gray-900 rounded-lg flex items-center justify-center">
+          <div className="text-gray-600 text-xl">Laster...</div>
+        </div>
+      )
     }
 
-    const framesDemo = demo.demo as Extract<ExerciseDemo, { kind: 'frames' }>
-    const fps = framesDemo.fps || 2
-    const frames = framesDemo.frames || []
-
-    if (frames.length === 0) {
-      return
-    }
-
-    const interval = setInterval(() => {
-      setCurrentFrameIndex((prev) => (prev + 1) % frames.length)
-    }, 1000 / fps)
-
-    return () => clearInterval(interval)
-  }, [demo, isPaused])
-
-  // Reset frame index when paused or demo changes
-  useEffect(() => {
-    if (isPaused || !demo || demo.demo.kind !== 'frames') {
-      setCurrentFrameIndex(0)
-    }
-  }, [isPaused, demo])
-
-  // Fallback if no demo found
-  if (!demo) {
-    return (
-      <div className="w-full max-w-md aspect-square bg-gray-900 rounded-lg flex items-center justify-center">
-        <div className="text-gray-600 text-xl">Ingen demo</div>
-      </div>
-    )
-  }
-
-  const { demo: demoConfig } = demo
-
-  // Render frames animation
-  if (demoConfig.kind === 'frames') {
-    const framesDemo = demoConfig as Extract<ExerciseDemo, { kind: 'frames' }>
-    const frames = framesDemo.frames || []
-    const currentFrame = frames[currentFrameIndex] || frames[0] || ''
-
-    return (
-      <div className="w-full max-w-md aspect-square bg-gray-900 rounded-lg flex items-center justify-center overflow-hidden">
-        <div
-          className="w-full h-full flex items-center justify-center"
-          dangerouslySetInnerHTML={{ __html: currentFrame }}
+    if (animationData) {
+      return (
+        <ExerciseAnimation
+          animationData={animationData}
+          paused={isPaused}
+          className="w-full max-w-md aspect-square"
         />
-      </div>
-    )
+      )
+    }
   }
 
-  // Render icon
-  if (demoConfig.kind === 'icon') {
-    const iconDemo = demoConfig as Extract<ExerciseDemo, { kind: 'icon' }>
-    return (
-      <div className="w-full max-w-md aspect-square bg-gray-900 rounded-lg flex items-center justify-center overflow-hidden">
-        <div
-          className="w-full h-full flex items-center justify-center"
-          dangerouslySetInnerHTML={{ __html: iconDemo.iconSvg }}
-        />
-      </div>
-    )
-  }
-
-  // Render text fallback
-  const textDemo = demoConfig as Extract<ExerciseDemo, { kind: 'text' }>
+  // Render placeholder for exercises without animations
   return (
     <div className="w-full max-w-md aspect-square bg-gray-900 rounded-lg flex items-center justify-center">
-      <div className="text-gray-300 text-xl">{textDemo.label || demo.name}</div>
+      <div className="text-gray-600 text-xl">
+        {demo?.demo.kind === 'placeholder' ? demo.demo.label : 'DEMO MANGLER'}
+      </div>
     </div>
   )
 }

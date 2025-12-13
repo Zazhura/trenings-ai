@@ -4,9 +4,8 @@
  */
 
 export type ExerciseDemo =
-  | { kind: 'frames'; fps?: number; frames: string[] }
-  | { kind: 'icon'; iconSvg: string }
-  | { kind: 'text'; label: string }
+  | { kind: 'lottie'; view: 'side'; lottieFile: string }
+  | { kind: 'placeholder'; label: string }
 
 export interface ExerciseEntry {
   name: string
@@ -19,10 +18,33 @@ export interface ExerciseEntry {
  * - replace spaces with dashes
  * - handle Norwegian characters
  * - remove special characters
+ * - map synonyms
  */
 export function normalizeToSlug(name: string): string {
-  return name
-    .toLowerCase()
+  // Map synonyms first
+  const synonymMap: Record<string, string> = {
+    'push-ups': 'pushup',
+    'pushups': 'pushup',
+    'jumping-jacks': 'jumping-jack',
+    'jumping jacks': 'jumping-jack',
+    'mountain-climbers': 'mountain-climber',
+    'mountain climbers': 'mountain-climber',
+    'situps': 'situp',
+    'sit-ups': 'situp',
+    'jump-rope': 'jump-rope',
+    'jump rope': 'jump-rope',
+    'squats': 'squat',
+    'lunges': 'lunge',
+    'burpees': 'burpee',
+    'sprint': 'sprint',
+    'row': 'row',
+    'plank': 'plank',
+  }
+
+  const lowerName = name.toLowerCase().trim()
+  const mapped = synonymMap[lowerName] || lowerName
+
+  return mapped
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
     .replace(/[æåä]/g, 'a')
@@ -35,315 +57,266 @@ export function normalizeToSlug(name: string): string {
 
 /**
  * Exercise Registry
- * All exercises from templates should be represented here
+ * Maps exercise slugs to Lottie animations or placeholders
  */
 export const exerciseRegistry: Record<string, ExerciseEntry> = {
-  // Common exercises with keyframe animations
-  'squats': {
+  // Exercises with Lottie side-view animations
+  'squat': {
     name: 'Squats',
     demo: {
-      kind: 'frames',
-      fps: 2,
-      frames: [
-        // Standing
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Mid-squat
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="220" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Deep squat
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="120" r="20" fill="white"/><line x1="100" y1="140" x2="100" y2="240" stroke="white" stroke-width="4"/><line x1="100" y1="240" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="240" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Mid-squat (back up)
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="220" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-      ],
+      kind: 'lottie',
+      view: 'side',
+      lottieFile: '/assets/exercises/squat_side.json',
     },
   },
-  'push-ups': {
+  'pushup': {
     name: 'Push-ups',
     demo: {
-      kind: 'frames',
-      fps: 2,
-      frames: [
-        // Up position
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="180" stroke="white" stroke-width="4"/><line x1="100" y1="180" x2="70" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="180" x2="130" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="180" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="180" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Down position
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="210" stroke="white" stroke-width="4"/><line x1="100" y1="210" x2="70" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="210" x2="130" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="210" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="210" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-      ],
+      kind: 'lottie',
+      view: 'side',
+      lottieFile: '/assets/exercises/pushup_side.json',
     },
   },
-  'burpees': {
+  'burpee': {
     name: 'Burpees',
     demo: {
-      kind: 'frames',
-      fps: 3,
-      frames: [
-        // Standing
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Squat
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="100" r="20" fill="white"/><line x1="100" y1="120" x2="100" y2="240" stroke="white" stroke-width="4"/><line x1="100" y1="240" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="240" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Plank
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Jump up
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="40" r="20" fill="white"/><line x1="100" y1="60" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-      ],
+      kind: 'lottie',
+      view: 'side',
+      lottieFile: '/assets/exercises/burpee_side.json',
     },
   },
-  'lunges': {
+  'lunge': {
     name: 'Lunges',
     demo: {
-      kind: 'frames',
-      fps: 2,
-      frames: [
-        // Standing
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Lunge left
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="220" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="50" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Standing
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Lunge right
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="220" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="150" y2="280" stroke="white" stroke-width="4"/></svg>',
-      ],
+      kind: 'lottie',
+      view: 'side',
+      lottieFile: '/assets/exercises/lunge_side.json',
     },
   },
   'plank': {
     name: 'Plank',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'lottie',
+      view: 'side',
+      lottieFile: '/assets/exercises/plank_side.json',
     },
   },
-  'jumping-jacks': {
+  'jumping-jack': {
     name: 'Jumping Jacks',
     demo: {
-      kind: 'frames',
-      fps: 3,
-      frames: [
-        // Standing
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Jump arms up
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="40" r="20" fill="white"/><line x1="100" y1="60" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="100" x2="60" y2="80" stroke="white" stroke-width="4"/><line x1="100" y1="100" x2="140" y2="80" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Standing
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-      ],
+      kind: 'lottie',
+      view: 'side',
+      lottieFile: '/assets/exercises/jumping_jack_side.json',
     },
   },
-  'mountain-climbers': {
+  'mountain-climber': {
     name: 'Mountain Climbers',
     demo: {
-      kind: 'frames',
-      fps: 4,
-      frames: [
-        // Plank position
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Left leg up
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="240" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Plank position
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Right leg up
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="240" stroke="white" stroke-width="4"/></svg>',
-      ],
+      kind: 'lottie',
+      view: 'side',
+      lottieFile: '/assets/exercises/mountain_climber_side.json',
     },
   },
-  'situps': {
+  'situp': {
     name: 'Situps',
     demo: {
-      kind: 'frames',
-      fps: 2,
-      frames: [
-        // Lying down
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="200" r="20" fill="white"/><line x1="100" y1="220" x2="100" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="70" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="130" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-        // Sitting up
-        '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="120" r="20" fill="white"/><line x1="100" y1="140" x2="100" y2="220" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="70" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="130" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-      ],
+      kind: 'lottie',
+      view: 'side',
+      lottieFile: '/assets/exercises/situp_side.json',
     },
   },
   'sprint': {
     name: 'Sprint',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="100" x2="70" y2="120" stroke="white" stroke-width="4"/><line x1="100" y1="100" x2="130" y2="120" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'lottie',
+      view: 'side',
+      lottieFile: '/assets/exercises/sprint_side.json',
     },
   },
   'jump-rope': {
     name: 'Jump Rope',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/><path d="M 50 100 Q 100 80 150 100" stroke="white" stroke-width="3" fill="none"/></svg>',
+      kind: 'lottie',
+      view: 'side',
+      lottieFile: '/assets/exercises/jump_rope_side.json',
     },
   },
   'row': {
     name: 'Row',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="120" x2="60" y2="140" stroke="white" stroke-width="4"/><line x1="100" y1="120" x2="140" y2="140" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'lottie',
+      view: 'side',
+      lottieFile: '/assets/exercises/row_side.json',
     },
   },
 
-  // Fallback icons for all other exercises
-  'lett-loping': {
-    name: 'Lett løping',
-    demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-    },
-  },
-  'dynamisk-stretching': {
-    name: 'Dynamisk stretching',
-    demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="150" x2="80" y2="130" stroke="white" stroke-width="3"/></svg>',
-    },
-  },
-  'aktivering': {
-    name: 'Aktivering',
-    demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
-    },
-  },
+  // Placeholders for exercises without animations
   'hvile': {
     name: 'Hvile',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="200" r="20" fill="white"/><line x1="100" y1="220" x2="100" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="70" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="130" y2="250" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="220" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'placeholder',
+      label: 'Hvile',
     },
   },
   'stretching': {
     name: 'Stretching',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="150" x2="80" y2="130" stroke="white" stroke-width="3"/></svg>',
+      kind: 'placeholder',
+      label: 'Stretching',
+    },
+  },
+  'lett-loping': {
+    name: 'Lett løping',
+    demo: {
+      kind: 'placeholder',
+      label: 'Lett løping',
+    },
+  },
+  'dynamisk-stretching': {
+    name: 'Dynamisk stretching',
+    demo: {
+      kind: 'placeholder',
+      label: 'Dynamisk stretching',
+    },
+  },
+  'aktivering': {
+    name: 'Aktivering',
+    demo: {
+      kind: 'placeholder',
+      label: 'Aktivering',
     },
   },
   'dynamisk-bevegelse': {
     name: 'Dynamisk bevegelse',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'placeholder',
+      label: 'Dynamisk bevegelse',
     },
   },
   'pull-ups': {
     name: 'Pull-ups',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><line x1="100" y1="50" x2="100" y2="100" stroke="white" stroke-width="4"/><circle cx="100" cy="120" r="20" fill="white"/><line x1="100" y1="140" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'placeholder',
+      label: 'Pull-ups',
     },
   },
   'shoulder-press': {
     name: 'Shoulder press',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="120" x2="60" y2="100" stroke="white" stroke-width="4"/><line x1="100" y1="120" x2="140" y2="100" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'placeholder',
+      label: 'Shoulder press',
     },
   },
   'deadlifts': {
     name: 'Deadlifts',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="80" r="20" fill="white"/><line x1="100" y1="100" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/><rect x="80" y="220" width="40" height="10" fill="white"/></svg>',
+      kind: 'placeholder',
+      label: 'Deadlifts',
     },
   },
   'russian-twists': {
     name: 'Russian twists',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="120" r="20" fill="white"/><line x1="100" y1="140" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/><circle cx="100" cy="100" r="15" fill="white"/></svg>',
+      kind: 'placeholder',
+      label: 'Russian twists',
     },
   },
   'lett-kardio': {
     name: 'Lett kardio',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'placeholder',
+      label: 'Lett kardio',
     },
   },
   'mobilitet': {
     name: 'Mobilitet',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'placeholder',
+      label: 'Mobilitet',
     },
   },
   'lett-bevegelse': {
     name: 'Lett bevegelse',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'placeholder',
+      label: 'Lett bevegelse',
     },
   },
   'hofteapning': {
     name: 'Hofteåpning',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="150" x2="80" y2="130" stroke="white" stroke-width="3"/></svg>',
+      kind: 'placeholder',
+      label: 'Hofteåpning',
     },
   },
   'ryggmobilitet': {
     name: 'Ryggmobilitet',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/><path d="M 100 150 Q 120 130 100 110" stroke="white" stroke-width="3" fill="none"/></svg>',
+      kind: 'placeholder',
+      label: 'Ryggmobilitet',
     },
   },
   'skulderbevegelse': {
     name: 'Skulderbevegelse',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="100" x2="70" y2="120" stroke="white" stroke-width="4"/><line x1="100" y1="100" x2="130" y2="120" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'placeholder',
+      label: 'Skulderbevegelse',
     },
   },
   'ankelmobilitet': {
     name: 'Ankelmobilitet',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/><path d="M 70 280 Q 100 260 130 280" stroke="white" stroke-width="3" fill="none"/></svg>',
+      kind: 'placeholder',
+      label: 'Ankelmobilitet',
     },
   },
   'flow-sekvens-1': {
     name: 'Flow sekvens 1',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/><path d="M 100 150 Q 120 130 100 110 Q 80 130 100 150" stroke="white" stroke-width="3" fill="none"/></svg>',
+      kind: 'placeholder',
+      label: 'Flow sekvens 1',
     },
   },
   'flow-sekvens-2': {
     name: 'Flow sekvens 2',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/><path d="M 100 150 Q 120 130 100 110 Q 80 130 100 150" stroke="white" stroke-width="3" fill="none"/></svg>',
+      kind: 'placeholder',
+      label: 'Flow sekvens 2',
     },
   },
   'flow-sekvens-3': {
     name: 'Flow sekvens 3',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/><path d="M 100 150 Q 120 130 100 110 Q 80 130 100 150" stroke="white" stroke-width="3" fill="none"/></svg>',
+      kind: 'placeholder',
+      label: 'Flow sekvens 3',
     },
   },
   'dyp-stretching': {
     name: 'Dyp stretching',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="150" x2="80" y2="130" stroke="white" stroke-width="3"/></svg>',
+      kind: 'placeholder',
+      label: 'Dyp stretching',
     },
   },
   'steady-pace-loping': {
     name: 'Steady pace løping',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'placeholder',
+      label: 'Steady pace løping',
     },
   },
   'lett-aktivitet': {
     name: 'Lett aktivitet',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'placeholder',
+      label: 'Lett aktivitet',
     },
   },
   'intensivt-arbeid': {
     name: 'Intensivt arbeid',
     demo: {
-      kind: 'icon',
-      iconSvg: '<svg width="200" height="300" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" r="20" fill="white"/><line x1="100" y1="70" x2="100" y2="200" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="70" y2="280" stroke="white" stroke-width="4"/><line x1="100" y1="200" x2="130" y2="280" stroke="white" stroke-width="4"/></svg>',
+      kind: 'placeholder',
+      label: 'Intensivt arbeid',
     },
   },
 }
@@ -374,4 +347,3 @@ export function getAllExerciseNamesFromTemplates(): string[] {
 
   return Array.from(exerciseNames).sort()
 }
-
