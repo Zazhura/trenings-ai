@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import { getExerciseDemo, normalizeExerciseName } from '@/lib/exercises/exerciseRegistry'
 import { registerMissingDemo } from '@/lib/exercises/missingDemos'
+import { setExerciseDebugInfo, type ExerciseDebugInfo } from '@/lib/exercises/debugInfo'
 import { ExerciseAnimation } from '@/components/exercises/ExerciseAnimation'
 
 interface ExerciseDemoProps {
   exerciseName: string
   isPaused: boolean
+  debugMode?: boolean
 }
 
 // Cache for loaded animations
@@ -21,9 +23,12 @@ const loggedWarnings = new Set<string>()
  * Displays exercise demos using Lottie animations or placeholders
  * Uses fetch with force-cache for smooth, flicker-free loading
  */
-export function ExerciseDemo({ exerciseName, isPaused }: ExerciseDemoProps) {
+export function ExerciseDemo({ exerciseName, isPaused, debugMode = false }: ExerciseDemoProps) {
   const [animationData, setAnimationData] = useState<object | null>(null)
+  const [fetchStatus, setFetchStatus] = useState<ExerciseDebugInfo['fetchStatus']>('idle')
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const demo = getExerciseDemo(exerciseName)
+  const normalizedKey = normalizeExerciseName(exerciseName)
 
   // Dev logging for missing mappings (once per exercise)
   useEffect(() => {
@@ -37,13 +42,29 @@ export function ExerciseDemo({ exerciseName, isPaused }: ExerciseDemoProps) {
     }
   }, [exerciseName, demo])
 
+  // Update debug info
+  useEffect(() => {
+    if (debugMode) {
+      const debugInfo: ExerciseDebugInfo = {
+        rawName: exerciseName,
+        normalizedKey,
+        registryHit: !!demo && demo.demo.kind === 'lottie',
+        assetPath: demo && demo.demo.kind === 'lottie' 
+          ? (demo.demo as Extract<typeof demo.demo, { kind: 'lottie' }>).lottieFile 
+          : null,
+        fetchStatus,
+        fetchError,
+      }
+      setExerciseDebugInfo(debugInfo)
+    }
+  }, [debugMode, exerciseName, normalizedKey, demo, fetchStatus, fetchError])
+
   // Register missing demo when placeholder is used
   useEffect(() => {
     if (!demo || demo.demo.kind === 'placeholder') {
-      const slug = normalizeExerciseName(exerciseName)
-      registerMissingDemo(slug)
+      registerMissingDemo(normalizedKey)
     }
-  }, [exerciseName, demo])
+  }, [exerciseName, demo, normalizedKey])
 
   // Load Lottie animation with cache
   useEffect(() => {
@@ -54,20 +75,36 @@ export function ExerciseDemo({ exerciseName, isPaused }: ExerciseDemoProps) {
       // Check cache first
       if (animationCache.has(fileUrl)) {
         setAnimationData(animationCache.get(fileUrl)!)
+        setFetchStatus('ok')
+        setFetchError(null)
         return
       }
+
+      setFetchStatus('loading')
+      setFetchError(null)
 
       // Fetch with force-cache for optimal caching
       fetch(fileUrl, { cache: 'force-cache' })
         .then((res) => {
+          if (res.status === 404) {
+            const fullUrl = new URL(fileUrl, window.location.origin).href
+            console.error(`[ExerciseDemo] 404 Not Found: ${fullUrl}`)
+            setFetchStatus('404')
+            setFetchError(`404: ${fullUrl}`)
+            throw new Error(`404 Not Found: ${fileUrl}`)
+          }
           if (!res.ok) {
-            throw new Error(`Failed to load: ${fileUrl}`)
+            setFetchStatus('error')
+            setFetchError(`HTTP ${res.status}: ${fileUrl}`)
+            throw new Error(`Failed to load: ${fileUrl} (${res.status})`)
           }
           return res.json()
         })
         .then((data) => {
           animationCache.set(fileUrl, data)
           setAnimationData(data)
+          setFetchStatus('ok')
+          setFetchError(null)
         })
         .catch((err) => {
           // Log error once per file
@@ -77,9 +114,14 @@ export function ExerciseDemo({ exerciseName, isPaused }: ExerciseDemoProps) {
             loggedWarnings.add(errorKey)
           }
           setAnimationData(null)
+          // Only set error status if not already 404
+          setFetchStatus((prev) => prev === '404' ? '404' : 'error')
+          setFetchError(err.message || 'Unknown error')
         })
     } else {
       setAnimationData(null)
+      setFetchStatus('idle')
+      setFetchError(null)
     }
   }, [demo])
 

@@ -7,9 +7,10 @@ import { ExerciseDemo } from './ExerciseDemo'
 
 interface DisplayContentProps {
   session: SessionState
+  debugMode?: boolean
 }
 
-export function DisplayContent({ session }: DisplayContentProps) {
+export function DisplayContent({ session, debugMode = false }: DisplayContentProps) {
   const currentBlock =
     session.template_snapshot.blocks[session.current_block_index]
   const currentStep = currentBlock?.steps[session.current_step_index]
@@ -83,7 +84,7 @@ export function DisplayContent({ session }: DisplayContentProps) {
 
       {/* Exercise Demo */}
       <div className="mb-12 sm:mb-16">
-        <ExerciseDemo exerciseName={currentStep.title} isPaused={isPaused} />
+        <ExerciseDemo exerciseName={currentStep.title} isPaused={isPaused} debugMode={debugMode} />
       </div>
 
       {/* Secondary Info Row */}

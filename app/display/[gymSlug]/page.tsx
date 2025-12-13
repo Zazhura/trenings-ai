@@ -104,7 +104,7 @@ function DisplayPageContent({
         </div>
       ) : (
         // Active session - show scoreboard
-        <DisplayContent session={session} />
+        <DisplayContent session={session} debugMode={showDebugDemos} />
       )}
       
       {/* Fullscreen hint - desktop only */}
