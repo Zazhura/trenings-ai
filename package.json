@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "verify-assets": "tsx scripts/verify-exercise-assets.ts"
+    "verify-assets": "tsx scripts/verify-exercise-assets.ts",
+    "validate:lottie": "tsx scripts/validate-lottie-json.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
