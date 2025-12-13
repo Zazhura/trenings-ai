@@ -2,69 +2,91 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  // Middleware now only runs on /coach routes (via matcher config)
+  // This ensures /, /display, /api, /_next, etc. never hit this middleware
+  
+  try {
+    const { pathname } = request.nextUrl
 
-  // Exclude static files, API routes, display routes, login, and favicon from auth checks
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/display') ||
-    pathname.startsWith('/favicon.ico') ||
-    pathname.startsWith('/login')
-  ) {
+    // Create a response object to modify cookies
+    let response = NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    })
+
+    // Get environment variables - fail-open if missing
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      // Missing env vars - fail-open to avoid 500 errors
+      console.warn('Middleware: Missing Supabase environment variables')
+      return NextResponse.next()
+    }
+
+    // Create Supabase client with cookie handling
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                request.cookies.set(name, value)
+              )
+              response = NextResponse.next({
+                request: {
+                  headers: request.headers,
+                },
+              })
+              cookiesToSet.forEach(({ name, value, options }) =>
+                response.cookies.set(name, value, options)
+              )
+            } catch (error) {
+              // Cookie setting failed - log but don't fail
+              console.warn('Middleware: Cookie setting failed', error)
+            }
+          },
+        },
+      }
+    )
+
+    // Refresh session to update cookies and check authentication
+    const { data: { user }, error } = await supabase.auth.getUser()
+
+    // If user is not authenticated, redirect to login
+    if (!user && !error) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    // If there's an auth error, fail-open (let the request continue)
+    // The layout will handle authentication check
+    if (error) {
+      console.warn('Middleware: Auth check failed', error)
+      return NextResponse.next()
+    }
+
+    return response
+  } catch (error) {
+    // Any unexpected error - fail-open to avoid 500
+    console.error('Middleware: Unexpected error', error)
     return NextResponse.next()
   }
-
-  // Create a response object to modify cookies
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
-
-  // Create Supabase client with cookie handling
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value)
-          )
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  // Refresh session to update cookies
-  await supabase.auth.getUser()
-
-  return response
 }
 
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - display (display routes - no auth needed)
-     * - login (login page - no auth needed)
+     * Only run middleware on /coach routes
+     * This ensures /, /display, /api, /_next, /login, etc. never hit middleware
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|display|login).*)',
+    '/coach/:path*',
   ],
 }
