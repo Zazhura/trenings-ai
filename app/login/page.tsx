@@ -1,15 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { AppShell } from '@/components/layout/AppShell'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { cardContainerClasses, formSpacingClasses } from '@/lib/ui/layout'
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const emailInputRef = useRef<HTMLInputElement>(null)
+
+  // Autofocus on email input
+  useEffect(() => {
+    emailInputRef.current?.focus()
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,8 +47,9 @@ export default function LoginPage() {
         return
       }
 
-      // Redirect to coach dashboard on success
-      router.push('/coach')
+      // Redirect to coach dashboard or redirect param
+      const redirectTo = searchParams.get('redirect') || '/coach'
+      router.push(redirectTo)
       router.refresh()
     } catch (err) {
       setError('En uventet feil oppstod')
@@ -39,53 +58,112 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-8">
-      <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-6 text-center">Logg inn</h1>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-2">
-              E-post
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-input rounded-lg bg-background"
-              placeholder="din@epost.no"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2">
-              Passord
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-input rounded-lg bg-background"
-              placeholder="••••••••"
-            />
-          </div>
-          {error && (
-            <div className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Logger inn...' : 'Logg inn'}
-          </button>
-        </form>
+    <AppShell>
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <div className={cardContainerClasses}>
+          <Card>
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-bold">Logg inn</CardTitle>
+              <CardDescription>
+                Skriv inn dine påloggingsdetaljer for å fortsette til treningsdashbordet
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleLogin} className={formSpacingClasses}>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="email"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    E-post
+                  </label>
+                  <Input
+                    id="email"
+                    ref={emailInputRef}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="din@epost.no"
+                    autoComplete="email"
+                    aria-describedby={error ? 'error-message' : undefined}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="password"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Passord
+                  </label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    aria-describedby={error ? 'error-message' : undefined}
+                    className="w-full"
+                  />
+                </div>
+
+                {error && (
+                  <div
+                    id="error-message"
+                    role="alert"
+                    aria-live="polite"
+                    className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm border border-destructive/20"
+                  >
+                    {error}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="mr-2">Logger inn...</span>
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    </>
+                  ) : (
+                    'Logg inn'
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+    </AppShell>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <AppShell>
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+          <div className={cardContainerClasses}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl font-bold">Logg inn</CardTitle>
+                <CardDescription>Laster...</CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </AppShell>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
 
