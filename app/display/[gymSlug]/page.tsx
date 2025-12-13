@@ -66,54 +66,46 @@ function DisplayPageContent({
     }
   }, [params.gymSlug])
 
-  // TASK-057: Add loading states
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <p className="text-6xl font-bold mb-4">Laster...</p>
-          <p className="text-2xl text-muted-foreground">
-            Kobler til Realtime...
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // No active session
-  if (!session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-6xl font-bold text-muted-foreground">
-          Ingen aktiv økt
-        </div>
-      </div>
-    )
-  }
-
-  // Session ended
-  if (session.status === SessionStatus.ENDED) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-6xl font-bold">Økt ferdig</div>
-      </div>
-    )
-  }
-
-  // Session stopped
-  if (session.status === SessionStatus.STOPPED) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-6xl font-bold">Økt stoppet</div>
-      </div>
-    )
-  }
-
-  // Active session - show content
+  // Scoreboard layout with dark "kino-mode" theme
   return (
-    <div className="min-h-screen bg-background text-foreground p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      {isLoading ? (
+        // Loading skeleton - no layout jump
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-9xl font-bold tabular-nums text-gray-700 mb-8">
+              00:00
+            </div>
+            <div className="text-4xl font-semibold text-gray-500 mb-4 max-w-2xl">
+              Laster...
+            </div>
+            <div className="text-xl text-gray-600">
+              Kobler til Realtime...
+            </div>
+          </div>
+        </div>
+      ) : !session || 
+          session.status === SessionStatus.STOPPED || 
+          session.status === SessionStatus.ENDED ? (
+        // Empty state: No session, stopped, or ended
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="text-center max-w-4xl">
+            <div className="text-8xl sm:text-9xl font-bold mb-8 text-gray-700">
+              VENTER PÅ COACH
+            </div>
+            <div className="text-2xl sm:text-3xl text-gray-400">
+              Ingen aktiv økt
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Active session - show scoreboard
         <DisplayContent session={session} />
+      )}
+      
+      {/* Fullscreen hint - desktop only */}
+      <div className="hidden md:block fixed bottom-4 right-4 text-xs text-gray-600">
+        Trykk F11 for fullskjerm
       </div>
     </div>
   )

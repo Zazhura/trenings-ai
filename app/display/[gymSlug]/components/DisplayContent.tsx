@@ -13,11 +13,8 @@ export function DisplayContent({ session }: DisplayContentProps) {
     session.template_snapshot.blocks[session.current_block_index]
   const currentStep = currentBlock?.steps[session.current_step_index]
 
-  // Check if step_end_time has passed (guardrail)
-  const isWaitingForNextStep =
-    session.status === SessionStatus.RUNNING &&
-    session.step_end_time &&
-    new Date(session.step_end_time).getTime() <= Date.now()
+  const isRunning = session.status === SessionStatus.RUNNING
+  const isPaused = session.status === SessionStatus.PAUSED
 
   // Get next step preview
   const getNextStepPreview = () => {
@@ -46,114 +43,104 @@ export function DisplayContent({ session }: DisplayContentProps) {
     return null
   }
 
-  // Calculate progress
-  const calculateProgress = () => {
-    let totalSteps = 0
-    let currentStepNumber = 0
-
-    session.template_snapshot.blocks.forEach((block, blockIdx) => {
-      block.steps.forEach((_, stepIdx) => {
-        totalSteps++
-        if (
-          blockIdx < session.current_block_index ||
-          (blockIdx === session.current_block_index &&
-            stepIdx <= session.current_step_index)
-        ) {
-          currentStepNumber++
-        }
-      })
-    })
-
-    return { current: currentStepNumber, total: totalSteps }
-  }
-
-  const progress = calculateProgress()
   const nextStepPreview = getNextStepPreview()
-
-  if (isWaitingForNextStep) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="text-6xl font-bold mb-4">Venter på neste steg</div>
-        {currentBlock && currentStep && (
-          <div className="text-3xl text-muted-foreground mt-4">
-            {currentBlock.name} - {currentStep.title}
-          </div>
-        )}
-      </div>
-    )
-  }
 
   if (!currentBlock || !currentStep) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="text-6xl font-bold">Ingen aktiv step</div>
+      <div className="flex-1 flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="text-8xl sm:text-9xl font-bold mb-8 text-gray-700">
+            INGEN AKTIV STEP
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="text-5xl font-bold mb-2">{currentBlock.name}</div>
-        <div className="text-4xl text-muted-foreground">
-          {currentStep.title}
+    <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-12 sm:py-16">
+      {/* PAUSED Banner */}
+      {isPaused && (
+        <div className="mb-8 px-8 py-4 bg-yellow-500 text-black rounded-lg">
+          <div className="text-4xl sm:text-5xl font-bold text-center">
+            PAUSE
+          </div>
         </div>
+      )}
+
+      {/* Main Timer - Most Prominent */}
+      <div className="mb-8 sm:mb-12">
+        <CountdownTimer session={session} />
       </div>
 
-      {/* Content Grid: Timer and Media */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 items-center">
-        {/* Large Timer */}
-        <div className="flex items-center justify-center">
-          <CountdownTimer session={session} />
+      {/* Step Name - Large under timer */}
+      <div className="mb-12 sm:mb-16 text-center max-w-5xl">
+        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-4 break-words">
+          {currentStep.title}
+        </h1>
+      </div>
+
+      {/* Secondary Info Row */}
+      <div className="w-full max-w-6xl grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center">
+        {/* Block/Step Info */}
+        <div className="space-y-2">
+          <div className="text-lg sm:text-xl text-gray-400">Blokk</div>
+          <div className="text-2xl sm:text-3xl font-semibold text-gray-300">
+            {currentBlock.name}
+          </div>
+          <div className="text-base sm:text-lg text-gray-500">
+            Steg {session.current_step_index + 1} av {currentBlock.steps.length}
+          </div>
         </div>
 
-        {/* Exercise Demo Media */}
-        <div className="flex items-center justify-center">
-          {currentStep.mediaUrl ? (
-            <div className="w-full max-w-2xl aspect-video bg-muted rounded-lg overflow-hidden flex items-center justify-center relative">
-              <Image
-                src={currentStep.mediaUrl}
-                alt={currentStep.title}
-                fill
-                className="object-contain"
-                unoptimized
-              />
-            </div>
+        {/* Status */}
+        <div className="space-y-2">
+          <div className="text-lg sm:text-xl text-gray-400">Status</div>
+          <div className="text-2xl sm:text-3xl font-semibold">
+            {isRunning ? (
+              <span className="text-green-400">KJØRER</span>
+            ) : isPaused ? (
+              <span className="text-yellow-400">PAUSET</span>
+            ) : (
+              <span className="text-gray-500">STOPPET</span>
+            )}
+          </div>
+        </div>
+
+        {/* Next Up */}
+        <div className="space-y-2">
+          <div className="text-lg sm:text-xl text-gray-400">Neste</div>
+          {nextStepPreview ? (
+            <>
+              <div className="text-xl sm:text-2xl font-semibold text-gray-300">
+                {nextStepPreview.step.title}
+              </div>
+              <div className="text-base sm:text-lg text-gray-500">
+                {nextStepPreview.block}
+              </div>
+            </>
           ) : (
-            <div className="w-full max-w-2xl aspect-video bg-muted rounded-lg flex items-center justify-center">
-              <div className="text-4xl text-muted-foreground">Ingen demo tilgjengelig</div>
+            <div className="text-xl sm:text-2xl text-gray-600">
+              Ferdig
             </div>
           )}
         </div>
       </div>
 
-      {/* Next Step Preview */}
-      {nextStepPreview && (
-        <div className="mb-8 p-6 bg-muted rounded-lg">
-          <div className="text-2xl font-semibold mb-2">Neste:</div>
-          <div className="text-xl">{nextStepPreview.block}</div>
-          <div className="text-lg text-muted-foreground">
-            {nextStepPreview.step.title}
+      {/* Exercise Demo Media - Below secondary info */}
+      {currentStep.mediaUrl && (
+        <div className="mt-12 sm:mt-16 w-full max-w-4xl">
+          <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden relative">
+            <Image
+              src={currentStep.mediaUrl}
+              alt={currentStep.title}
+              fill
+              className="object-contain"
+              unoptimized
+            />
           </div>
         </div>
       )}
-
-      {/* Progress Indicator */}
-      <div className="mb-4">
-        <div className="flex justify-between text-2xl mb-2">
-          <span>Steg {progress.current} av {progress.total}</span>
-          <span>
-            {Math.round((progress.current / progress.total) * 100)}%
-          </span>
-        </div>
-        <div className="w-full bg-muted rounded-full h-4">
-          <div
-            className="bg-primary h-4 rounded-full transition-all duration-300"
-            style={{ width: `${(progress.current / progress.total) * 100}%` }}
-          />
-        </div>
-      </div>
     </div>
   )
 }

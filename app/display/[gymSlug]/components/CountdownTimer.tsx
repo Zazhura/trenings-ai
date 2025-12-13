@@ -70,12 +70,14 @@ export function CountdownTimer({ session }: CountdownTimerProps) {
 
   if (remainingMs === null) {
     return (
-      <div className="text-9xl font-bold text-muted-foreground">--:--</div>
+      <div className="text-8xl sm:text-9xl lg:text-[12rem] font-bold text-gray-700 tabular-nums">
+        --:--
+      </div>
     )
   }
 
   return (
-    <div className="text-9xl font-bold tabular-nums">
+    <div className="text-8xl sm:text-9xl lg:text-[12rem] font-bold text-white tabular-nums">
       {formatTime(remainingMs)}
     </div>
   )
