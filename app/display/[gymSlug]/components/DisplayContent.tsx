@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { SessionState, SessionStatus } from '@/types/session'
 import { CountdownTimer } from './CountdownTimer'
+import { ExerciseDemo } from './ExerciseDemo'
 
 interface DisplayContentProps {
   session: SessionState
@@ -74,10 +75,15 @@ export function DisplayContent({ session }: DisplayContentProps) {
       </div>
 
       {/* Step Name - Large under timer */}
-      <div className="mb-12 sm:mb-16 text-center max-w-5xl">
+      <div className="mb-8 sm:mb-12 text-center max-w-5xl">
         <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-4 break-words">
           {currentStep.title}
         </h1>
+      </div>
+
+      {/* Exercise Demo */}
+      <div className="mb-12 sm:mb-16">
+        <ExerciseDemo exerciseName={currentStep.title} isPaused={isPaused} />
       </div>
 
       {/* Secondary Info Row */}
@@ -127,20 +133,6 @@ export function DisplayContent({ session }: DisplayContentProps) {
         </div>
       </div>
 
-      {/* Exercise Demo Media - Below secondary info */}
-      {currentStep.mediaUrl && (
-        <div className="mt-12 sm:mt-16 w-full max-w-4xl">
-          <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden relative">
-            <Image
-              src={currentStep.mediaUrl}
-              alt={currentStep.title}
-              fill
-              className="object-contain"
-              unoptimized
-            />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
