@@ -14,6 +14,7 @@ interface ExerciseAnimationProps {
  * Exercise Animation Component using Lottie
  * Displays side-view exercise animations with pause/play support
  * Fixed height to prevent layout jumps
+ * Inverted colors for visibility on dark scoreboard background
  */
 export function ExerciseAnimation({
   animationData,
@@ -22,8 +23,20 @@ export function ExerciseAnimation({
   debugMode = false,
 }: ExerciseAnimationProps) {
   const lottieRef = useRef<LottieRefCurrentProps>(null)
+  const darkModeScoreboard = true // Display is always dark kino-mode
+
+  // Debug: Log animation data structure once when loaded
+  useEffect(() => {
+    if (animationData && debugMode) {
+      const data = animationData as any
+      const layersCount = data.layers?.length || 0
+      const animationName = data.nm || 'unnamed'
+      console.log(`[ExerciseAnimation] Loaded: layers=${layersCount}, name="${animationName}"`)
+    }
+  }, [animationData, debugMode])
 
   // Control animation playback based on paused state
+  // Always autoplay and loop, but pause when paused prop is true
   useEffect(() => {
     if (!lottieRef.current) return
 
@@ -56,13 +69,13 @@ export function ExerciseAnimation({
         </div>
       )}
       
-      {/* Lottie wrapper with explicit sizing */}
-      <div className="w-full h-full exerciseAnim">
+      {/* Lottie wrapper with explicit sizing and invert filter for dark background */}
+      <div className={`w-full h-full exerciseAnim ${darkModeScoreboard ? 'exerciseAnimDark' : ''}`}>
         <Lottie
           lottieRef={lottieRef}
           animationData={animationData}
           loop={true}
-          autoplay={!paused}
+          autoplay={true}
           rendererSettings={{
             preserveAspectRatio: 'xMidYMid meet',
           }}

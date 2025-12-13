@@ -74,9 +74,9 @@
     height: 100% !important;
   }
   
-  /* Enhance visibility on dark background */
-  .exerciseAnim {
-    filter: brightness(1.2) contrast(1.2);
+  /* Invert colors for visibility on dark scoreboard background */
+  .exerciseAnimDark svg {
+    filter: invert(1) brightness(1.1) contrast(1.1);
   }
 }
 
