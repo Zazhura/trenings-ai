@@ -67,3 +67,16 @@
   }
 }
 
+@layer components {
+  /* Ensure Lottie SVG fills container */
+  .exerciseAnim svg {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  
+  /* Enhance visibility on dark background */
+  .exerciseAnim {
+    filter: brightness(1.2) contrast(1.2);
+  }
+}
+

@@ -158,6 +158,7 @@ export function ExerciseDemo({ exerciseName, isPaused, debugMode = false }: Exer
       <ExerciseAnimation
         animationData={animationData || undefined}
         paused={isPaused}
+        debugMode={debugMode}
         className="w-full max-w-md"
       />
     )
