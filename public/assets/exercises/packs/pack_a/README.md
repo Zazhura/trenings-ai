@@ -37,6 +37,16 @@ All animations in this pack must follow these strict style guidelines to maintai
 - Dimensions: 400x400px recommended
 - Loop: All animations should loop seamlessly
 
+## Validation
+
+**All assets must pass validation before commit:**
+
+```bash
+npm run validate:lottie
+```
+
+This script validates that all JSON files are valid JSON and won't crash the display. The build will fail if any file is invalid.
+
 ## Quality Checklist
 
 Before adding a new animation to this pack, verify:
@@ -48,4 +58,5 @@ Before adding a new animation to this pack, verify:
 - [ ] Consistent proportions with pack_a style
 - [ ] White strokes only
 - [ ] Seamless loop
+- [ ] Passes `npm run validate:lottie`
 
