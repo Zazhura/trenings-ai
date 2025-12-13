@@ -14,36 +14,64 @@ export interface ExerciseEntry {
 
 /**
  * Normalize exercise name to slug
- * - lowercase
- * - replace spaces with dashes
- * - handle Norwegian characters
- * - remove special characters
+ * - lowercase, trim
+ * - remove parentheses and content
+ * - remove rep-count patterns (e.g., "20x", "3x10")
+ * - remove punctuation
  * - map synonyms
+ * - handle Norwegian characters
+ * - convert to slug format
  */
-export function normalizeToSlug(name: string): string {
-  // Map synonyms first
+export function normalizeExerciseName(name: string): string {
+  // Step 1: Basic cleanup
+  let normalized = name.toLowerCase().trim()
+
+  // Step 2: Remove parentheses and content inside
+  normalized = normalized.replace(/\([^)]*\)/g, '')
+
+  // Step 3: Remove rep-count patterns (e.g., "20x", "3x10", "10 reps")
+  normalized = normalized.replace(/\d+x\s*/g, '')
+  normalized = normalized.replace(/\d+\s*x\s*\d+/g, '')
+  normalized = normalized.replace(/\d+\s*reps?/gi, '')
+
+  // Step 4: Remove punctuation
+  normalized = normalized.replace(/[.,;:!?'"`]/g, '')
+
+  // Step 5: Map synonyms
   const synonymMap: Record<string, string> = {
     'push-ups': 'pushup',
     'pushups': 'pushup',
+    'push up': 'pushup',
+    'pushup': 'pushup',
     'jumping-jacks': 'jumping-jack',
     'jumping jacks': 'jumping-jack',
+    'jumping jack': 'jumping-jack',
     'mountain-climbers': 'mountain-climber',
     'mountain climbers': 'mountain-climber',
+    'mountain climber': 'mountain-climber',
     'situps': 'situp',
     'sit-ups': 'situp',
+    'sit up': 'situp',
+    'situp': 'situp',
     'jump-rope': 'jump-rope',
     'jump rope': 'jump-rope',
+    'rope': 'jump-rope',
     'squats': 'squat',
+    'squat': 'squat',
+    'air squat': 'squat',
     'lunges': 'lunge',
+    'lunge': 'lunge',
     'burpees': 'burpee',
+    'burpee': 'burpee',
     'sprint': 'sprint',
     'row': 'row',
+    'rower': 'row',
     'plank': 'plank',
   }
 
-  const lowerName = name.toLowerCase().trim()
-  const mapped = synonymMap[lowerName] || lowerName
+  const mapped = synonymMap[normalized] || normalized
 
+  // Step 6: Convert to slug
   return mapped
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
@@ -53,6 +81,13 @@ export function normalizeToSlug(name: string): string {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
+}
+
+/**
+ * @deprecated Use normalizeExerciseName instead
+ */
+export function normalizeToSlug(name: string): string {
+  return normalizeExerciseName(name)
 }
 
 /**
@@ -325,7 +360,7 @@ export const exerciseRegistry: Record<string, ExerciseEntry> = {
  * Get exercise demo by name (normalized to slug)
  */
 export function getExerciseDemo(exerciseName: string): ExerciseEntry | null {
-  const slug = normalizeToSlug(exerciseName)
+  const slug = normalizeExerciseName(exerciseName)
   return exerciseRegistry[slug] || null
 }
 
