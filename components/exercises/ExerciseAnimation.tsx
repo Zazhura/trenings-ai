@@ -23,7 +23,6 @@ export function ExerciseAnimation({
   debugMode = false,
 }: ExerciseAnimationProps) {
   const lottieRef = useRef<LottieRefCurrentProps>(null)
-  const darkModeScoreboard = true // Display is always dark kino-mode
 
   // Debug: Log animation data structure once when loaded
   useEffect(() => {
@@ -31,7 +30,8 @@ export function ExerciseAnimation({
       const data = animationData as any
       const layersCount = data.layers?.length || 0
       const animationName = data.nm || 'unnamed'
-      console.log(`[ExerciseAnimation] Loaded: layers=${layersCount}, name="${animationName}"`)
+      const layerTypes = data.layers?.slice(0, 2).map((layer: any) => layer.ty || 'unknown') || []
+      console.log(`[ExerciseAnimation] Loaded: name="${animationName}", layers=${layersCount}, first layer types: [${layerTypes.join(', ')}]`)
     }
   }, [animationData, debugMode])
 
@@ -69,8 +69,8 @@ export function ExerciseAnimation({
         </div>
       )}
       
-      {/* Lottie wrapper with explicit sizing and invert filter for dark background */}
-      <div className={`w-full h-full exerciseAnim ${darkModeScoreboard ? 'exerciseAnimDark' : ''}`}>
+      {/* Lottie wrapper with explicit sizing and invert filter for dark scoreboard */}
+      <div className="w-full h-full exerciseAnim">
         <Lottie
           lottieRef={lottieRef}
           animationData={animationData}
