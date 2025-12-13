@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { getExerciseDemo, normalizeExerciseName } from '@/lib/exercises/exerciseRegistry'
 import { registerMissingDemo } from '@/lib/exercises/missingDemos'
 import { setExerciseDebugInfo, type ExerciseDebugInfo } from '@/lib/exercises/debugInfo'
+import { getAssetVersion } from '@/lib/exercises/assetVersion'
 import { ExerciseAnimation } from '@/components/exercises/ExerciseAnimation'
 
 interface ExerciseDemoProps {
@@ -12,8 +13,17 @@ interface ExerciseDemoProps {
   debugMode?: boolean
 }
 
-// Cache for loaded animations
+// Cache for loaded animations (key includes version for cache-busting)
 const animationCache = new Map<string, object>()
+
+// Get asset version (memoized per render cycle)
+let cachedVersion: string | null = null
+function getCachedAssetVersion(): string {
+  if (!cachedVersion) {
+    cachedVersion = getAssetVersion()
+  }
+  return cachedVersion
+}
 
 // Track logged warnings to avoid spam
 const loggedWarnings = new Set<string>()
@@ -45,13 +55,18 @@ export function ExerciseDemo({ exerciseName, isPaused, debugMode = false }: Exer
   // Update debug info
   useEffect(() => {
     if (debugMode) {
+      const lottieDemo = demo && demo.demo.kind === 'lottie'
+        ? (demo.demo as Extract<typeof demo.demo, { kind: 'lottie' }>)
+        : null
+      const basePath = lottieDemo?.lottieFile || null
+      const version = basePath ? getCachedAssetVersion() : null
+      const assetPath = basePath && version ? `${basePath}?v=${version}` : basePath
+
       const debugInfo: ExerciseDebugInfo = {
         rawName: exerciseName,
         normalizedKey,
         registryHit: !!demo && demo.demo.kind === 'lottie',
-        assetPath: demo && demo.demo.kind === 'lottie' 
-          ? (demo.demo as Extract<typeof demo.demo, { kind: 'lottie' }>).lottieFile 
-          : null,
+        assetPath,
         fetchStatus,
         fetchError,
       }
@@ -66,15 +81,22 @@ export function ExerciseDemo({ exerciseName, isPaused, debugMode = false }: Exer
     }
   }, [exerciseName, demo, normalizedKey])
 
-  // Load Lottie animation with cache
+  // Load Lottie animation with cache-busting
   useEffect(() => {
     if (demo && demo.demo.kind === 'lottie') {
       const lottieDemo = demo.demo as Extract<typeof demo.demo, { kind: 'lottie' }>
-      const fileUrl = lottieDemo.lottieFile
+      const baseUrl = lottieDemo.lottieFile
+      const version = getCachedAssetVersion()
+      
+      // Build URL with version query parameter for cache-busting
+      const fileUrl = `${baseUrl}?v=${version}`
+      
+      // Cache key includes version to prevent reusing old responses
+      const cacheKey = `${baseUrl}:${version}`
 
       // Check cache first
-      if (animationCache.has(fileUrl)) {
-        setAnimationData(animationCache.get(fileUrl)!)
+      if (animationCache.has(cacheKey)) {
+        setAnimationData(animationCache.get(cacheKey)!)
         setFetchStatus('ok')
         setFetchError(null)
         return
@@ -83,8 +105,13 @@ export function ExerciseDemo({ exerciseName, isPaused, debugMode = false }: Exer
       setFetchStatus('loading')
       setFetchError(null)
 
-      // Fetch with force-cache for optimal caching
-      fetch(fileUrl, { cache: 'force-cache' })
+      // In debug mode, use no-store to always fetch fresh
+      // Otherwise use force-cache for optimal caching
+      const fetchOptions: RequestInit = {
+        cache: debugMode ? 'no-store' : 'force-cache',
+      }
+
+      fetch(fileUrl, fetchOptions)
         .then((res) => {
           if (res.status === 404) {
             const fullUrl = new URL(fileUrl, window.location.origin).href
@@ -101,7 +128,7 @@ export function ExerciseDemo({ exerciseName, isPaused, debugMode = false }: Exer
           return res.json()
         })
         .then((data) => {
-          animationCache.set(fileUrl, data)
+          animationCache.set(cacheKey, data)
           setAnimationData(data)
           setFetchStatus('ok')
           setFetchError(null)
@@ -123,7 +150,7 @@ export function ExerciseDemo({ exerciseName, isPaused, debugMode = false }: Exer
       setFetchStatus('idle')
       setFetchError(null)
     }
-  }, [demo])
+  }, [demo, debugMode])
 
   // Render Lottie animation if available
   if (demo && demo.demo.kind === 'lottie') {
