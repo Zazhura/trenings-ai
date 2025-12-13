@@ -1,8 +1,16 @@
 'use client'
 
-import { useState } from 'react'
 import { Template } from '@/types/template'
 import { getAllTemplates } from '@/lib/templates'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 interface TemplateSelectorProps {
   onSelect: (template: Template) => void
@@ -17,29 +25,48 @@ export function TemplateSelector({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-semibold">Velg Template</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {templates.map((template) => (
-          <button
-            key={template.id}
-            onClick={() => onSelect(template)}
-            className={`p-4 border-2 rounded-lg text-left transition-colors ${
-              selectedTemplateId === template.id
-                ? 'border-primary bg-primary/10'
-                : 'border-border hover:border-primary/50'
-            }`}
-          >
-            <h3 className="font-semibold text-lg mb-1">{template.name}</h3>
-            {template.description && (
-              <p className="text-sm text-muted-foreground">
-                {template.description}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground mt-2">
-              {template.blocks.length} blokk(er)
-            </p>
-          </button>
-        ))}
+      <div>
+        <h2 className="text-xl font-semibold mb-1">Velg template</h2>
+        <p className="text-sm text-muted-foreground">
+          Velg en treningsmal for å starte en ny økt
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {templates.map((template) => {
+          const isSelected = selectedTemplateId === template.id
+          return (
+            <Card
+              key={template.id}
+              className={cn(
+                'cursor-pointer transition-all hover:shadow-md',
+                isSelected && 'ring-2 ring-primary ring-offset-2'
+              )}
+              onClick={() => onSelect(template)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  onSelect(template)
+                }
+              }}
+            >
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <CardTitle className="text-lg">{template.name}</CardTitle>
+                  <Badge variant="secondary" className="ml-2">
+                    {template.blocks.length} blokk{template.blocks.length !== 1 ? 'er' : ''}
+                  </Badge>
+                </div>
+                {template.description && (
+                  <CardDescription className="mt-2">
+                    {template.description}
+                  </CardDescription>
+                )}
+              </CardHeader>
+            </Card>
+          )
+        })}
       </div>
     </div>
   )

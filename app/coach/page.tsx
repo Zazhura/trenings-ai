@@ -6,10 +6,19 @@ import { TemplateSelector } from './components/TemplateSelector'
 import { SessionStatus as SessionStatusComponent } from './components/SessionStatus'
 import { SessionControls } from './components/SessionControls'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { AppShell } from '@/components/layout/AppShell'
 import { startSession } from '@/lib/session-operations'
 import { createTemplateSnapshot } from '@/lib/templates'
 import { SessionState, SessionStatus } from '@/types/session'
 import { subscribeToSessionChanges, getCurrentSession } from '@/lib/realtime'
+import {
+  pageHeaderClasses,
+  pageTitleClasses,
+  pageDescriptionClasses,
+  spacing,
+} from '@/lib/ui/layout'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 function CoachPageContent() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
@@ -148,43 +157,78 @@ function CoachPageContent() {
       currentSession.status === SessionStatus.PAUSED)
 
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-6">Coach Dashboard</h1>
-      
-      <SessionStatusComponent session={currentSession} />
+    <AppShell>
+      {/* Page Header */}
+      <div className={pageHeaderClasses}>
+        <h1 className={pageTitleClasses}>Coach Dashboard</h1>
+        <p className={pageDescriptionClasses}>
+          Start, pause og styr økten fra ett sted.
+        </p>
+      </div>
 
-      {hasActiveSession && (
-        <div className="mt-6">
-          <SessionControls session={currentSession} />
-        </div>
-      )}
+      <div className={spacing.lg}>
+        {/* Session Status Section */}
+        {!hasActiveSession && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Ingen aktiv økt</CardTitle>
+              <CardDescription>
+                Velg en template og start en session.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
 
-      <div className="mt-8">
-        <TemplateSelector
-          onSelect={setSelectedTemplate}
-          selectedTemplateId={selectedTemplate?.id}
-        />
-        {selectedTemplate && (
-          <div className="mt-6 space-y-4">
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="font-semibold">Valgt: {selectedTemplate.name}</p>
-            </div>
-            <button
-              onClick={handleStartSession}
-              disabled={isStarting || !!hasActiveSession}
-              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isStarting ? 'Starter...' : 'Start Session'}
-            </button>
-            {error && (
-              <div className="p-4 bg-destructive/10 text-destructive rounded-lg">
-                {error}
-              </div>
-            )}
+        {hasActiveSession && (
+          <div className={spacing.md}>
+            <SessionStatusComponent session={currentSession} />
+            <SessionControls session={currentSession} />
           </div>
         )}
+
+        {/* Template Selection Section */}
+        <div className={spacing.md}>
+          <TemplateSelector
+            onSelect={setSelectedTemplate}
+            selectedTemplateId={selectedTemplate?.id}
+          />
+          
+          {selectedTemplate && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Valgt template</CardTitle>
+                <CardDescription>{selectedTemplate.name}</CardDescription>
+              </CardHeader>
+              <CardContent className={spacing.sm}>
+                <Button
+                  onClick={handleStartSession}
+                  disabled={isStarting || !!hasActiveSession}
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
+                  {isStarting ? (
+                    <>
+                      <span className="mr-2">Starter...</span>
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    </>
+                  ) : (
+                    'Start Session'
+                  )}
+                </Button>
+                {error && (
+                  <div
+                    role="alert"
+                    className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm border border-destructive/20"
+                  >
+                    {error}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
-    </div>
+    </AppShell>
   )
 }
 

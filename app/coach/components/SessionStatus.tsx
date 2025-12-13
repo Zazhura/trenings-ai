@@ -51,11 +51,7 @@ export function SessionStatus({ session }: SessionStatusProps) {
   }, [session, session?.status, session?.step_end_time, session?.remaining_ms])
 
   if (!session) {
-    return (
-      <div className="p-4 bg-muted rounded-lg">
-        <p className="text-muted-foreground">Ingen aktiv session</p>
-      </div>
-    )
+    return null // Empty state is handled in parent component
   }
 
   const currentBlock =
