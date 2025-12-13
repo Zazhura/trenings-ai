@@ -1,18 +1,22 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { SessionState, SessionStatus } from '@/types/session'
 import { getCurrentSession, subscribeToSessionChanges } from '@/lib/realtime'
 import { DisplayContent } from './components/DisplayContent'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { DebugDemos } from './components/DebugDemos'
 
 function DisplayPageContent({
   params,
 }: {
   params: { gymSlug: string }
 }) {
+  const searchParams = useSearchParams()
   const [session, setSession] = useState<SessionState | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const showDebugDemos = searchParams.get('debugDemos') === '1'
 
   useEffect(() => {
     let channel: ReturnType<typeof subscribeToSessionChanges> | null = null
@@ -107,6 +111,9 @@ function DisplayPageContent({
       <div className="hidden md:block fixed bottom-4 right-4 text-xs text-gray-600">
         Trykk F11 for fullskjerm
       </div>
+
+      {/* Debug demos - only when ?debugDemos=1 */}
+      <DebugDemos isVisible={showDebugDemos} />
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getExerciseDemo, normalizeExerciseName } from '@/lib/exercises/exerciseRegistry'
+import { registerMissingDemo } from '@/lib/exercises/missingDemos'
 import { ExerciseAnimation } from '@/components/exercises/ExerciseAnimation'
 
 interface ExerciseDemoProps {
@@ -33,6 +34,14 @@ export function ExerciseDemo({ exerciseName, isPaused }: ExerciseDemoProps) {
         console.warn(`[ExerciseDemo] Missing mapping for: "${exerciseName}" (slug: "${slug}")`)
         loggedWarnings.add(warningKey)
       }
+    }
+  }, [exerciseName, demo])
+
+  // Register missing demo when placeholder is used
+  useEffect(() => {
+    if (!demo || demo.demo.kind === 'placeholder') {
+      const slug = normalizeExerciseName(exerciseName)
+      registerMissingDemo(slug)
     }
   }, [exerciseName, demo])
 

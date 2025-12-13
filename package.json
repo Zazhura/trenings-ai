@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify-assets": "tsx scripts/verify-exercise-assets.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
@@ -32,6 +33,7 @@
     "eslint-config-next": "^14.2.5",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
+    "tsx": "^4.21.0",
     "typescript": "^5.5.4"
   }
 }
