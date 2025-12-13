@@ -4,13 +4,18 @@
  */
 
 export type ExerciseDemo =
-  | { kind: 'lottie'; view: 'side'; lottieFile: string }
+  | { kind: 'lottie'; view: 'side'; pack: string; lottieFile: string }
   | { kind: 'placeholder'; label: string }
 
 export interface ExerciseEntry {
   name: string
   demo: ExerciseDemo
 }
+
+/**
+ * Enforce single pack usage - all demos must use pack_a
+ */
+const REQUIRED_PACK = 'pack_a'
 
 /**
  * Normalize exercise name to slug
@@ -95,13 +100,14 @@ export function normalizeToSlug(name: string): string {
  * Maps exercise slugs to Lottie animations or placeholders
  */
 export const exerciseRegistry: Record<string, ExerciseEntry> = {
-  // Exercises with Lottie side-view animations
+  // Exercises with Lottie side-view animations (pack_a only)
   'squat': {
     name: 'Squats',
     demo: {
       kind: 'lottie',
       view: 'side',
-      lottieFile: '/assets/exercises/squat_side.json',
+      pack: REQUIRED_PACK,
+      lottieFile: '/assets/exercises/packs/pack_a/squat_side.json',
     },
   },
   'pushup': {
@@ -109,7 +115,8 @@ export const exerciseRegistry: Record<string, ExerciseEntry> = {
     demo: {
       kind: 'lottie',
       view: 'side',
-      lottieFile: '/assets/exercises/pushup_side.json',
+      pack: REQUIRED_PACK,
+      lottieFile: '/assets/exercises/packs/pack_a/pushup_side.json',
     },
   },
   'burpee': {
@@ -117,7 +124,8 @@ export const exerciseRegistry: Record<string, ExerciseEntry> = {
     demo: {
       kind: 'lottie',
       view: 'side',
-      lottieFile: '/assets/exercises/burpee_side.json',
+      pack: REQUIRED_PACK,
+      lottieFile: '/assets/exercises/packs/pack_a/burpee_side.json',
     },
   },
   'lunge': {
@@ -125,7 +133,8 @@ export const exerciseRegistry: Record<string, ExerciseEntry> = {
     demo: {
       kind: 'lottie',
       view: 'side',
-      lottieFile: '/assets/exercises/lunge_side.json',
+      pack: REQUIRED_PACK,
+      lottieFile: '/assets/exercises/packs/pack_a/lunge_side.json',
     },
   },
   'plank': {
@@ -133,7 +142,8 @@ export const exerciseRegistry: Record<string, ExerciseEntry> = {
     demo: {
       kind: 'lottie',
       view: 'side',
-      lottieFile: '/assets/exercises/plank_side.json',
+      pack: REQUIRED_PACK,
+      lottieFile: '/assets/exercises/packs/pack_a/plank_side.json',
     },
   },
   'jumping-jack': {
@@ -141,7 +151,8 @@ export const exerciseRegistry: Record<string, ExerciseEntry> = {
     demo: {
       kind: 'lottie',
       view: 'side',
-      lottieFile: '/assets/exercises/jumping_jack_side.json',
+      pack: REQUIRED_PACK,
+      lottieFile: '/assets/exercises/packs/pack_a/jumping_jack_side.json',
     },
   },
   'mountain-climber': {
@@ -149,7 +160,8 @@ export const exerciseRegistry: Record<string, ExerciseEntry> = {
     demo: {
       kind: 'lottie',
       view: 'side',
-      lottieFile: '/assets/exercises/mountain_climber_side.json',
+      pack: REQUIRED_PACK,
+      lottieFile: '/assets/exercises/packs/pack_a/mountain_climber_side.json',
     },
   },
   'situp': {
@@ -157,7 +169,8 @@ export const exerciseRegistry: Record<string, ExerciseEntry> = {
     demo: {
       kind: 'lottie',
       view: 'side',
-      lottieFile: '/assets/exercises/situp_side.json',
+      pack: REQUIRED_PACK,
+      lottieFile: '/assets/exercises/packs/pack_a/situp_side.json',
     },
   },
   'sprint': {
@@ -165,7 +178,8 @@ export const exerciseRegistry: Record<string, ExerciseEntry> = {
     demo: {
       kind: 'lottie',
       view: 'side',
-      lottieFile: '/assets/exercises/sprint_side.json',
+      pack: REQUIRED_PACK,
+      lottieFile: '/assets/exercises/packs/pack_a/sprint_side.json',
     },
   },
   'jump-rope': {
@@ -173,7 +187,8 @@ export const exerciseRegistry: Record<string, ExerciseEntry> = {
     demo: {
       kind: 'lottie',
       view: 'side',
-      lottieFile: '/assets/exercises/jump_rope_side.json',
+      pack: REQUIRED_PACK,
+      lottieFile: '/assets/exercises/packs/pack_a/jump_rope_side.json',
     },
   },
   'row': {
@@ -181,7 +196,8 @@ export const exerciseRegistry: Record<string, ExerciseEntry> = {
     demo: {
       kind: 'lottie',
       view: 'side',
-      lottieFile: '/assets/exercises/row_side.json',
+      pack: REQUIRED_PACK,
+      lottieFile: '/assets/exercises/packs/pack_a/row_side.json',
     },
   },
 

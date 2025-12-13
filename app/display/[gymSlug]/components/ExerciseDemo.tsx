@@ -94,11 +94,24 @@ export function ExerciseDemo({ exerciseName, isPaused }: ExerciseDemoProps) {
     )
   }
 
-  // Render placeholder for exercises without animations (same height as animation)
+  // Render premium placeholder for exercises without animations
+  const displayName = demo?.name || exerciseName
   return (
-    <div className="w-full max-w-md bg-gray-900 rounded-lg flex items-center justify-center min-h-[240px] md:min-h-[320px] lg:min-h-[420px]">
-      <div className="text-gray-600 text-xl">
-        {demo?.demo.kind === 'placeholder' ? demo.demo.label : 'DEMO MANGLER'}
+    <div className="w-full max-w-md min-h-[240px] md:min-h-[320px] lg:min-h-[420px] flex items-center justify-center">
+      {/* Premium brand frame */}
+      <div className="relative w-full h-full rounded-lg border border-gray-700/50 bg-gradient-to-br from-gray-900/50 to-gray-800/30 backdrop-blur-sm flex flex-col items-center justify-center p-8">
+        {/* Subtle gradient overlay */}
+        <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-transparent via-gray-800/20 to-transparent pointer-events-none" />
+        
+        {/* Content */}
+        <div className="relative z-10 text-center space-y-3">
+          <div className="text-lg md:text-xl font-semibold text-gray-300">
+            {displayName}
+          </div>
+          <div className="text-sm md:text-base text-gray-500 font-light">
+            Demo kommer
+          </div>
+        </div>
       </div>
     </div>
   )
