@@ -74,10 +74,9 @@
     height: 100% !important;
   }
   
-  /* Invert colors for visibility on dark scoreboard background (kino-mode) */
-  /* Only applies to /display pages, not globally */
+  /* Animations already have white strokes - no invert needed on dark background */
   .exerciseAnim {
-    filter: invert(1) brightness(1.1) contrast(1.1);
+    filter: brightness(1.1) contrast(1.1);
   }
 }
 

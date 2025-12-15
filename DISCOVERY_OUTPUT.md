@@ -864,3 +864,6 @@ Auto-advance: I minst 5 fulle økter går systemet automatisk gjennom alle steps
 
 Fullføringshåndtering: Ved siste step → display viser tydelig "Økt ferdig"/"Ingen aktiv økt" og coach kan starte ny.
 
+
+
+
