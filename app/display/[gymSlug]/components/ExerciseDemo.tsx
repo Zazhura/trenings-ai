@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { getExerciseDemo, normalizeExerciseName } from '@/lib/exercises/exerciseRegistry'
 import { registerMissingDemo } from '@/lib/exercises/missingDemos'
 import { setExerciseDebugInfo, type ExerciseDebugInfo } from '@/lib/exercises/debugInfo'
+import { getExerciseMedia } from '@/lib/exercises/exerciseMediaPack'
 
 interface ExerciseDemoProps {
   exerciseName: string
@@ -16,11 +17,13 @@ const loggedWarnings = new Set<string>()
 
 /**
  * Exercise Demo Component
- * Displays exercise placeholders
+ * Displays exercise media (SVG) or placeholders
  */
 export function ExerciseDemo({ exerciseName, debugMode = false }: ExerciseDemoProps) {
   const demo = getExerciseDemo(exerciseName)
   const normalizedKey = normalizeExerciseName(exerciseName)
+  const media = getExerciseMedia(exerciseName)
+  const [imageError, setImageError] = useState(false)
 
   // Dev logging for missing mappings (once per exercise)
   useEffect(() => {
@@ -56,8 +59,15 @@ export function ExerciseDemo({ exerciseName, debugMode = false }: ExerciseDemoPr
     }
   }, [exerciseName, demo, normalizedKey])
 
-  // Render premium placeholder for exercises
+  // Reset image error when exercise changes
+  useEffect(() => {
+    setImageError(false)
+  }, [exerciseName])
+
+  // Render exercise media or placeholder
   const displayName = demo?.name || exerciseName
+  const hasMedia = media && !imageError
+
   return (
     <div className="w-full max-w-md min-h-[240px] md:min-h-[320px] lg:min-h-[420px] flex items-center justify-center">
       {/* Premium brand frame */}
@@ -67,12 +77,28 @@ export function ExerciseDemo({ exerciseName, debugMode = false }: ExerciseDemoPr
         
         {/* Content */}
         <div className="relative z-10 text-center space-y-3">
-          <div className="text-lg md:text-xl font-semibold text-gray-300">
-            {displayName}
-          </div>
-          <div className="text-sm md:text-base text-gray-500 font-light">
-            Demo kommer
-          </div>
+          {hasMedia && media.type === 'svg' ? (
+            <>
+              <img
+                src={media.src}
+                alt={media.alt}
+                className="w-48 h-48 md:w-64 md:h-64 object-contain filter brightness-0 invert"
+                onError={() => setImageError(true)}
+              />
+              <div className="text-lg md:text-xl font-semibold text-gray-300">
+                {displayName}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-lg md:text-xl font-semibold text-gray-300">
+                {displayName}
+              </div>
+              <div className="text-sm md:text-base text-gray-500 font-light">
+                Demo kommer
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

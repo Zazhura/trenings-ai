@@ -1,0 +1,15 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="white"/>
+  <g stroke="black" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Person in squat position -->
+    <circle cx="256" cy="150" r="40"/>
+    <line x1="256" y1="190" x2="256" y2="320"/>
+    <line x1="256" y1="250" x2="200" y2="300"/>
+    <line x1="256" y1="250" x2="312" y2="300"/>
+    <line x1="256" y1="320" x2="180" y2="400"/>
+    <line x1="256" y1="320" x2="332" y2="400"/>
+    <!-- Ground -->
+    <line x1="100" y1="450" x2="412" y2="450" stroke-width="4"/>
+  </g>
+</svg>
+

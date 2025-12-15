@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="white"/>
+  <g stroke="black" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Bar -->
+    <line x1="100" y1="100" x2="412" y2="100" stroke-width="12"/>
+    <!-- Person hanging -->
+    <circle cx="256" cy="200" r="40"/>
+    <line x1="256" y1="240" x2="256" y2="400"/>
+    <line x1="256" y1="300" x2="200" y2="350"/>
+    <line x1="256" y1="300" x2="312" y2="350"/>
+    <line x1="256" y1="400" x2="200" y2="450"/>
+    <line x1="256" y1="400" x2="312" y2="450"/>
+    <!-- Hands on bar -->
+    <line x1="200" y1="100" x2="200" y2="180"/>
+    <line x1="312" y1="100" x2="312" y2="180"/>
+  </g>
+</svg>
+
