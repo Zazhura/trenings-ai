@@ -4,18 +4,12 @@
  */
 
 export type ExerciseDemo =
-  | { kind: 'lottie'; view: 'side'; pack: string; lottieFile: string }
   | { kind: 'placeholder'; label: string }
 
 export interface ExerciseEntry {
   name: string
   demo: ExerciseDemo
 }
-
-/**
- * Enforce single pack usage - all demos must use pack_a
- */
-const REQUIRED_PACK = 'pack_a'
 
 /**
  * Normalize exercise name to slug
@@ -97,107 +91,85 @@ export function normalizeToSlug(name: string): string {
 
 /**
  * Exercise Registry
- * Maps exercise slugs to Lottie animations or placeholders
+ * Maps exercise slugs to placeholders
  */
 export const exerciseRegistry: Record<string, ExerciseEntry> = {
-  // Exercises with Lottie side-view animations (pack_a only)
+  // Exercises with placeholders
   'squat': {
     name: 'Squats',
     demo: {
-      kind: 'lottie',
-      view: 'side',
-      pack: REQUIRED_PACK,
-      lottieFile: '/assets/exercises/packs/pack_a/squat_side.json',
+      kind: 'placeholder',
+      label: 'Squats',
     },
   },
   'pushup': {
     name: 'Push-ups',
     demo: {
-      kind: 'lottie',
-      view: 'side',
-      pack: REQUIRED_PACK,
-      lottieFile: '/assets/exercises/packs/pack_a/pushup_side.json',
+      kind: 'placeholder',
+      label: 'Push-ups',
     },
   },
   'burpee': {
     name: 'Burpees',
     demo: {
-      kind: 'lottie',
-      view: 'side',
-      pack: REQUIRED_PACK,
-      lottieFile: '/assets/exercises/packs/pack_a/burpee_side.json',
+      kind: 'placeholder',
+      label: 'Burpees',
     },
   },
   'lunge': {
     name: 'Lunges',
     demo: {
-      kind: 'lottie',
-      view: 'side',
-      pack: REQUIRED_PACK,
-      lottieFile: '/assets/exercises/packs/pack_a/lunge_side.json',
+      kind: 'placeholder',
+      label: 'Lunges',
     },
   },
   'plank': {
     name: 'Plank',
     demo: {
-      kind: 'lottie',
-      view: 'side',
-      pack: REQUIRED_PACK,
-      lottieFile: '/assets/exercises/packs/pack_a/plank_side.json',
+      kind: 'placeholder',
+      label: 'Plank',
     },
   },
   'jumping-jack': {
     name: 'Jumping Jacks',
     demo: {
-      kind: 'lottie',
-      view: 'side',
-      pack: REQUIRED_PACK,
-      lottieFile: '/assets/exercises/packs/pack_a/jumping_jack_side.json',
+      kind: 'placeholder',
+      label: 'Jumping Jacks',
     },
   },
   'mountain-climber': {
     name: 'Mountain Climbers',
     demo: {
-      kind: 'lottie',
-      view: 'side',
-      pack: REQUIRED_PACK,
-      lottieFile: '/assets/exercises/packs/pack_a/mountain_climber_side.json',
+      kind: 'placeholder',
+      label: 'Mountain Climbers',
     },
   },
   'situp': {
     name: 'Situps',
     demo: {
-      kind: 'lottie',
-      view: 'side',
-      pack: REQUIRED_PACK,
-      lottieFile: '/assets/exercises/packs/pack_a/situp_side.json',
+      kind: 'placeholder',
+      label: 'Situps',
     },
   },
   'sprint': {
     name: 'Sprint',
     demo: {
-      kind: 'lottie',
-      view: 'side',
-      pack: REQUIRED_PACK,
-      lottieFile: '/assets/exercises/packs/pack_a/sprint_side.json',
+      kind: 'placeholder',
+      label: 'Sprint',
     },
   },
   'jump-rope': {
     name: 'Jump Rope',
     demo: {
-      kind: 'lottie',
-      view: 'side',
-      pack: REQUIRED_PACK,
-      lottieFile: '/assets/exercises/packs/pack_a/jump_rope_side.json',
+      kind: 'placeholder',
+      label: 'Jump Rope',
     },
   },
   'row': {
     name: 'Row',
     demo: {
-      kind: 'lottie',
-      view: 'side',
-      pack: REQUIRED_PACK,
-      lottieFile: '/assets/exercises/packs/pack_a/row_side.json',
+      kind: 'placeholder',
+      label: 'Row',
     },
   },
 

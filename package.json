@@ -4,12 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run validate:lottie && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "verify-assets": "tsx scripts/verify-exercise-assets.ts",
-    "validate:lottie": "tsx scripts/validate-lottie-json.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
@@ -17,7 +15,6 @@
     "@supabase/supabase-js": "^2.87.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lottie-react": "^2.4.1",
     "lucide-react": "^0.561.0",
     "next": "^14.2.5",
     "react": "^18.3.1",

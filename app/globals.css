@@ -68,15 +68,5 @@
 }
 
 @layer components {
-  /* Ensure Lottie SVG fills container */
-  .exerciseAnim svg {
-    width: 100% !important;
-    height: 100% !important;
-  }
-  
-  /* Animations already have white strokes - no invert needed on dark background */
-  .exerciseAnim {
-    filter: brightness(1.1) contrast(1.1);
-  }
 }
 
