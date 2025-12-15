@@ -11,6 +11,7 @@ import { startSession } from '@/lib/session-operations'
 import { createTemplateSnapshot } from '@/lib/templates'
 import { SessionState, SessionStatus } from '@/types/session'
 import { subscribeToSessionChanges, getCurrentSession } from '@/lib/realtime'
+import { getUserPrimaryGymClient } from '@/lib/auth/get-user-gym-client'
 import {
   pageHeaderClasses,
   pageTitleClasses,
@@ -38,8 +39,16 @@ function CoachPageContent() {
     sessionRef.current = currentSession
   }, [currentSession])
 
-  // TODO: Get gym_slug from user context or settings
-  const gymSlug = 'default-gym'
+  // Get gym_slug from user's gym
+  const [gymSlug, setGymSlug] = useState<string>('default-gym')
+
+  useEffect(() => {
+    getUserPrimaryGymClient().then(gym => {
+      if (gym) {
+        setGymSlug(gym.slug)
+      }
+    })
+  }, [])
 
   // Subscribe to session changes
   useEffect(() => {

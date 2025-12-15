@@ -1,7 +1,10 @@
 'use client'
 
-import { Template } from '@/types/template'
+import { useState, useEffect } from 'react'
+import { Template, DatabaseTemplate } from '@/types/template'
 import { getAllTemplates } from '@/lib/templates'
+import { getUserPrimaryGymClient } from '@/lib/auth/get-user-gym-client'
+import { getGymTemplates } from '@/lib/templates/db-operations'
 import {
   Card,
   CardContent,
@@ -21,7 +24,53 @@ export function TemplateSelector({
   onSelect,
   selectedTemplateId,
 }: TemplateSelectorProps) {
-  const templates = getAllTemplates()
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadTemplates()
+  }, [])
+
+  const loadTemplates = async () => {
+    setLoading(true)
+    try {
+      // Try to load from database first
+      const gym = await getUserPrimaryGymClient()
+      if (gym) {
+        const dbTemplates = await getGymTemplates(gym.id)
+        // Convert DatabaseTemplate to Template format
+        const convertedTemplates: Template[] = dbTemplates.map(t => ({
+          id: t.id,
+          name: t.name,
+          description: t.description,
+          blocks: t.blocks,
+        }))
+        setTemplates(convertedTemplates)
+        setLoading(false)
+        return
+      }
+    } catch (error) {
+      console.error('Error loading templates from database:', error)
+    }
+
+    // Fallback to hardcoded templates
+    const hardcodedTemplates = getAllTemplates()
+    setTemplates(hardcodedTemplates)
+    setLoading(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold mb-1">Velg template</h2>
+          <p className="text-sm text-muted-foreground">
+            Laster templates...
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -31,7 +80,14 @@ export function TemplateSelector({
           Velg en treningsmal for å starte en ny økt
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {templates.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-gray-500">
+            Ingen templates tilgjengelig
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {templates.map((template) => {
           const isSelected = selectedTemplateId === template.id
           return (
@@ -67,7 +123,8 @@ export function TemplateSelector({
             </Card>
           )
         })}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

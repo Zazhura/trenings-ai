@@ -1,9 +1,9 @@
 'use client'
 
-import Image from 'next/image'
 import { SessionState, SessionStatus } from '@/types/session'
 import { CountdownTimer } from './CountdownTimer'
-import { ExerciseDemo } from './ExerciseDemo'
+import { ExercisePanel } from './ExercisePanel'
+import { ExercisePanelPrefetcher } from './ExercisePanelPrefetcher'
 
 interface DisplayContentProps {
   session: SessionState
@@ -82,10 +82,20 @@ export function DisplayContent({ session, debugMode = false }: DisplayContentPro
         </h1>
       </div>
 
-      {/* Exercise Demo */}
+      {/* Exercise Panel */}
       <div className="mb-12 sm:mb-16">
-        <ExerciseDemo exerciseName={currentStep.title} isPaused={isPaused} debugMode={debugMode} />
+        <ExercisePanel 
+          exerciseId={currentStep.exercise_id} 
+          exerciseTitle={currentStep.title}
+          isPaused={isPaused} 
+          debugMode={debugMode} 
+        />
       </div>
+
+      {/* Prefetch next step's exercise media */}
+      {nextStepPreview?.step.exercise_id && (
+        <ExercisePanelPrefetcher exerciseId={nextStepPreview.step.exercise_id} />
+      )}
 
       {/* Secondary Info Row */}
       <div className="w-full max-w-6xl grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 text-center">

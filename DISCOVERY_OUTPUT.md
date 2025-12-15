@@ -867,3 +867,4 @@ Fullføringshåndtering: Ved siste step → display viser tydelig "Økt ferdig"/
 
 
 
+

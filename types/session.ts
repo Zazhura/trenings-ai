@@ -30,7 +30,8 @@ export interface BlockSnapshot {
 export interface StepSnapshot {
   title: string
   duration: number // Duration in milliseconds
-  mediaUrl?: string // Optional media URL for exercise demo (e.g., image or gif)
+  exercise_id?: string // Optional reference to global exercise library
+  mediaUrl?: string // @deprecated - Use exercise_id instead. Kept for backward compatibility
 }
 
 /**
