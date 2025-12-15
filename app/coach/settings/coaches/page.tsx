@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getUserPrimaryGymClient } from '@/lib/auth/get-user-gym-client'
 import { isGymAdminClient } from '@/lib/auth/roles-client'
-import { getGymRoles, inviteCoach, removeCoach } from '@/lib/user-roles/db-operations'
+import { getGymRoles, removeCoach } from '@/lib/user-roles/db-operations'
 import type { UserRoleRecord } from '@/types/user-role'
 import type { Gym } from '@/types/gym'
 import {
@@ -61,13 +61,25 @@ export default function CoachesPage() {
     }
 
     try {
-      const result = await inviteCoach(gym.id, inviteEmail.trim())
-      if (result) {
+      const response = await fetch('/api/invite-coach', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gymId: gym.id,
+          userEmail: inviteEmail.trim(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
         setInviteEmail('')
         setShowInviteForm(false)
         loadData()
       } else {
-        alert('Kunne ikke invitere coach. Sjekk at e-postadressen eksisterer i systemet.')
+        alert(data.error || 'Kunne ikke invitere coach. Sjekk at e-postadressen eksisterer i systemet.')
       }
     } catch (error) {
       console.error('Error inviting coach:', error)

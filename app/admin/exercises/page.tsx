@@ -11,9 +11,8 @@ import {
   getActiveExercises,
   createExercise,
   updateExercise,
-  type Exercise,
-  type ExerciseStatus,
 } from '@/lib/exercises/db-operations'
+import type { Exercise, ExerciseStatus } from '@/types/exercise'
 import {
   pageHeaderClasses,
   pageTitleClasses,

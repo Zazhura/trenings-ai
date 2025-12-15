@@ -9,22 +9,14 @@ import type { UserRole, UserRoleRecord } from '@/types/user-role'
 
 /**
  * Invite coach to gym - Gym Admin only
+ * Note: This requires user_id, not email, because admin API is server-side only
+ * For email-based invites, use an API route that calls this with user_id
  */
 export async function inviteCoach(
   gymId: string,
-  userEmail: string
+  userId: string
 ): Promise<UserRoleRecord | null> {
   const supabase = createClient()
-  
-  // First, get user by email
-  const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(userEmail)
-  
-  if (userError || !userData?.user) {
-    console.error('Error finding user:', userError)
-    return null
-  }
-
-  const userId = userData.user.id
 
   // Check if role already exists
   const { data: existing } = await supabase

@@ -5,7 +5,8 @@ import { AppShell } from '@/components/layout/AppShell'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { getAllGyms, createGym, type Gym } from '@/lib/gyms/db-operations'
+import { getAllGyms, createGym } from '@/lib/gyms/db-operations'
+import type { Gym } from '@/types/gym'
 import {
   pageHeaderClasses,
   pageTitleClasses,

@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { getUserPrimaryGymClient } from '@/lib/auth/get-user-gym-client'
-import { getGymTemplates, duplicateTemplate, deleteTemplate, type DatabaseTemplate } from '@/lib/templates/db-operations'
+import { getGymTemplates, duplicateTemplate, deleteTemplate } from '@/lib/templates/db-operations'
+import type { DatabaseTemplate } from '@/types/template'
 import {
   pageHeaderClasses,
   pageTitleClasses,
