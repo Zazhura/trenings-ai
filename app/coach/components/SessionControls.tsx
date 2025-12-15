@@ -79,15 +79,6 @@ export function SessionControls({
       {isActive && (
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2">
-            {/* Next Block button */}
-            <button
-              onClick={() => handleAction(() => nextBlock(session.id))}
-              disabled={isLoading}
-              className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-semibold hover:bg-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next Block
-            </button>
-
             {/* Prev Block button */}
             <button
               onClick={() => handleAction(() => prevBlock(session.id))}
@@ -96,18 +87,18 @@ export function SessionControls({
             >
               Prev Block
             </button>
+
+            {/* Next Block button */}
+            <button
+              onClick={() => handleAction(() => nextBlock(session.id))}
+              disabled={isLoading}
+              className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-semibold hover:bg-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next Block
+            </button>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {/* Next Step button */}
-            <button
-              onClick={() => handleAction(() => nextStep(session.id))}
-              disabled={isLoading}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next Step
-            </button>
-
             {/* Prev Step button */}
             <button
               onClick={() => handleAction(() => prevStep(session.id))}
@@ -115,6 +106,15 @@ export function SessionControls({
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Prev Step
+            </button>
+
+            {/* Next Step button */}
+            <button
+              onClick={() => handleAction(() => nextStep(session.id))}
+              disabled={isLoading}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next Step
             </button>
           </div>
         </div>
