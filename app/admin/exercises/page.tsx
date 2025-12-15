@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AppShell } from '@/components/layout/AppShell'
+import { Navigation } from '@/app/coach/components/Navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -79,7 +80,7 @@ export default function ExercisesPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell header={<Navigation />}>
       <div className={pageHeaderClasses}>
         <h1 className={pageTitleClasses}>Exercise Library</h1>
         <p className={pageDescriptionClasses}>

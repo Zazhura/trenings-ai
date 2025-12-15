@@ -6,6 +6,7 @@ import { TemplateSelector } from './components/TemplateSelector'
 import { SessionStatus as SessionStatusComponent } from './components/SessionStatus'
 import { SessionControls } from './components/SessionControls'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { Navigation } from './components/Navigation'
 import { AppShell } from '@/components/layout/AppShell'
 import { startSession } from '@/lib/session-operations'
 import { createTemplateSnapshot } from '@/lib/templates'
@@ -166,7 +167,7 @@ function CoachPageContent() {
       currentSession.status === SessionStatus.PAUSED)
 
   return (
-    <AppShell>
+    <AppShell header={<Navigation />}>
       {/* Page Header */}
       <div className={pageHeaderClasses}>
         <h1 className={pageTitleClasses}>Coach Dashboard</h1>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/AppShell'
+import { Navigation } from '../components/Navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -72,7 +73,7 @@ export default function TemplatesPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell header={<Navigation />}>
       <div className={pageHeaderClasses}>
         <h1 className={pageTitleClasses}>Templates</h1>
         <p className={pageDescriptionClasses}>

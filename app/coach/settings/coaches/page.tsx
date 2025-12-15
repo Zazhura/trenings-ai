@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AppShell } from '@/components/layout/AppShell'
+import { Navigation } from '../../components/Navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -107,7 +108,7 @@ export default function CoachesPage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <AppShell header={<Navigation />}>
         <div className="text-center py-8">Laster...</div>
       </AppShell>
     )
@@ -115,7 +116,7 @@ export default function CoachesPage() {
 
   if (!isAdmin) {
     return (
-      <AppShell>
+      <AppShell header={<Navigation />}>
         <div className={pageHeaderClasses}>
           <h1 className={pageTitleClasses}>Coach Management</h1>
           <p className={pageDescriptionClasses}>
@@ -132,7 +133,7 @@ export default function CoachesPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell header={<Navigation />}>
       <div className={pageHeaderClasses}>
         <h1 className={pageTitleClasses}>Coach Management</h1>
         <p className={pageDescriptionClasses}>

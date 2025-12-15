@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/layout/AppShell'
+import { Navigation } from '../../components/Navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -61,7 +62,7 @@ export default function NewTemplatePage() {
   }
 
   return (
-    <AppShell>
+    <AppShell header={<Navigation />}>
       <div className={pageHeaderClasses}>
         <h1 className={pageTitleClasses}>Ny template</h1>
         <p className={pageDescriptionClasses}>

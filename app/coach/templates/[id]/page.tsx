@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { AppShell } from '@/components/layout/AppShell'
+import { Navigation } from '../../components/Navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -93,7 +94,7 @@ export default function EditTemplatePage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <AppShell header={<Navigation />}>
         <div className="text-center py-8">Laster...</div>
       </AppShell>
     )
@@ -101,7 +102,7 @@ export default function EditTemplatePage() {
 
   if (!template) {
     return (
-      <AppShell>
+      <AppShell header={<Navigation />}>
         <div className="text-center py-8">Template ikke funnet</div>
       </AppShell>
     )
@@ -109,7 +110,7 @@ export default function EditTemplatePage() {
 
   if (template.is_demo) {
     return (
-      <AppShell>
+      <AppShell header={<Navigation />}>
         <div className={pageHeaderClasses}>
           <h1 className={pageTitleClasses}>{template.name}</h1>
           <Badge variant="secondary">Demo - Read-only</Badge>
@@ -129,7 +130,7 @@ export default function EditTemplatePage() {
   }
 
   return (
-    <AppShell>
+    <AppShell header={<Navigation />}>
       <div className={pageHeaderClasses}>
         <h1 className={pageTitleClasses}>Rediger template</h1>
         <p className={pageDescriptionClasses}>
