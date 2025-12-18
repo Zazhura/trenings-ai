@@ -97,18 +97,22 @@ export async function POST(request: NextRequest) {
 
     const supabase = getAdminClient()
 
+    // Build payload with explicit type
+    const payload: Record<string, unknown> = {
+      name: name.trim(),
+      aliases: Array.isArray(aliases) ? aliases.map((a: string) => a.trim()).filter(Boolean) : [],
+      category: category ?? null,
+      equipment: Array.isArray(equipment) ? equipment : [],
+      description: description ?? null,
+      video_url: video_url ?? null,
+      media_svg_url: undefined,
+      status: status ?? 'active',
+    }
+
     // Insert exercise
     const { data, error } = await supabase
       .from('exercises')
-      .insert({
-        name: name.trim(),
-        aliases: Array.isArray(aliases) ? aliases.map((a: string) => a.trim()).filter(Boolean) : [],
-        category: category || null,
-        equipment: Array.isArray(equipment) ? equipment : (equipment ? [equipment] : []),
-        description: description || null,
-        video_url: video_url || null,
-        status: (status === 'archived' ? 'archived' : 'active') as ExerciseStatus,
-      })
+      .insert(payload as any)
       .select()
       .single()
 
@@ -117,22 +121,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create exercise' }, { status: 500 })
     }
 
+    if (!data) {
+      return NextResponse.json({ error: 'Failed to create exercise' }, { status: 500 })
+    }
+
     // Map database row to Exercise type
+    const row = data as any
     const exercise: Exercise = {
-      id: data.id,
-      name: data.name,
-      aliases: data.aliases || [],
-      category: data.category || null,
-      equipment: Array.isArray(data.equipment) ? data.equipment : (data.equipment ? [data.equipment] : []),
-      description: data.description || null,
-      video_url: data.video_url || null,
-      media_svg_url: data.media_svg_url || null,
-      status: (data.status as ExerciseStatus) || 'active',
-      motion_asset_url: data.motion_asset_url || undefined,
-      video_asset_url: data.video_asset_url || undefined,
-      poster_url: data.poster_url || undefined,
-      created_at: new Date(data.created_at),
-      updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
+      id: row.id,
+      name: row.name,
+      aliases: row.aliases || [],
+      category: row.category || null,
+      equipment: Array.isArray(row.equipment) ? row.equipment : (row.equipment ? [row.equipment] : []),
+      description: row.description || null,
+      video_url: row.video_url || null,
+      media_svg_url: row.media_svg_url || null,
+      status: (row.status as ExerciseStatus) || 'active',
+      motion_asset_url: row.motion_asset_url || undefined,
+      video_asset_url: row.video_asset_url || undefined,
+      poster_url: row.poster_url || undefined,
+      created_at: new Date(row.created_at),
+      updated_at: row.updated_at ? new Date(row.updated_at) : undefined,
     }
 
     return NextResponse.json(exercise, { status: 201 })
