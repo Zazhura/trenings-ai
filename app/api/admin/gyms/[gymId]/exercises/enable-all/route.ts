@@ -20,7 +20,7 @@ export async function POST(
     const supabase = getAdminClient()
 
     // Get all exercises
-    const { data: exercises, error: exercisesError } = await supabase
+    const { data: exercisesData, error: exercisesError } = await supabase
       .from('exercises')
       .select('id')
 
@@ -29,7 +29,11 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to fetch exercises' }, { status: 500 })
     }
 
-    if (!exercises || exercises.length === 0) {
+    // Cast result to avoid never[] type issue
+    type ExerciseRow = { id: string }
+    const exercises = (exercisesData ?? []) as ExerciseRow[]
+
+    if (exercises.length === 0) {
       return NextResponse.json({ error: 'No exercises found' }, { status: 404 })
     }
 
@@ -54,14 +58,15 @@ export async function POST(
 
       // Only upsert if it doesn't exist or if it's not already enabled
       if (!exists || !wasEnabled) {
-        const { error: upsertErr } = await supabase
-          .from('gym_exercises')
-          .upsert({
-            gym_id: params.gymId,
-            exercise_id: exercise.id,
-            is_enabled: true,
-            updated_at: new Date().toISOString(),
-          }, {
+        const upsertData = {
+          gym_id: params.gymId,
+          exercise_id: exercise.id,
+          is_enabled: true,
+          updated_at: new Date().toISOString(),
+        }
+        const { error: upsertErr } = await (supabase
+          .from('gym_exercises') as any)
+          .upsert(upsertData, {
             onConflict: 'gym_id,exercise_id',
           })
 
