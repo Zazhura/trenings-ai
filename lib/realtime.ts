@@ -72,6 +72,7 @@ export function subscribeToSessionChanges(
 /**
  * Get current active session for a gym_slug
  * Returns the most recent running/paused session, or null if none exists
+ * Uses maybeSingle() to avoid 406 errors when no session exists
  */
 export async function getCurrentSession(
   gymSlug: string
@@ -84,14 +85,14 @@ export async function getCurrentSession(
     .in('status', ['running', 'paused'])
     .order('created_at', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      // No rows returned
-      return null
-    }
     console.error('Error fetching current session:', error)
+    return null
+  }
+
+  if (!data) {
     return null
   }
 

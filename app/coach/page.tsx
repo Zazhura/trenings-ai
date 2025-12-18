@@ -10,7 +10,7 @@ import { Navigation } from './components/Navigation'
 import { AppShell } from '@/components/layout/AppShell'
 import { createTemplateSnapshot } from '@/lib/templates'
 import { SessionState, SessionStatus } from '@/types/session'
-import { subscribeToSessionChanges, getCurrentSession } from '@/lib/realtime'
+import { subscribeToSessionChanges } from '@/lib/realtime'
 import { getUserPrimaryGymClient } from '@/lib/auth/get-user-gym-client'
 import { DebugFooter } from '@/components/debug/DebugFooter'
 import {
@@ -53,10 +53,39 @@ function CoachPageContent() {
 
   // Subscribe to session changes
   useEffect(() => {
-    // Get initial session (only running/paused sessions)
-    getCurrentSession(gymSlug).then(setCurrentSession)
+    // Get initial session from server API (only running/paused sessions)
+    async function fetchCurrentSession() {
+      try {
+        const response = await fetch('/api/coach/sessions/current')
+        if (response.ok) {
+          const data = await response.json()
+          const session = data.session || null
+          
+          // Convert ISO strings back to Date objects if session exists
+          if (session) {
+            setCurrentSession({
+              ...session,
+              step_end_time: session.step_end_time ? new Date(session.step_end_time) : null,
+              block_end_time: session.block_end_time ? new Date(session.block_end_time) : null,
+              created_at: new Date(session.created_at),
+              updated_at: new Date(session.updated_at),
+            } as SessionState)
+          } else {
+            setCurrentSession(null)
+          }
+        } else {
+          console.error('[CoachPage] Failed to fetch current session:', response.statusText)
+          setCurrentSession(null)
+        }
+      } catch (error) {
+        console.error('[CoachPage] Error fetching current session:', error)
+        setCurrentSession(null)
+      }
+    }
 
-    // Subscribe to changes
+    fetchCurrentSession()
+
+    // Subscribe to changes via realtime
     // Note: subscribeToSessionChanges filters to only send running/paused sessions
     const channel = subscribeToSessionChanges(gymSlug, (session) => {
       // session will be null if stopped/ended, or a running/paused session
