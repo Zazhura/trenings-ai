@@ -8,7 +8,6 @@ import { SessionControls } from './components/SessionControls'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Navigation } from './components/Navigation'
 import { AppShell } from '@/components/layout/AppShell'
-import { startSession } from '@/lib/session-operations'
 import { createTemplateSnapshot } from '@/lib/templates'
 import { SessionState, SessionStatus } from '@/types/session'
 import { subscribeToSessionChanges, getCurrentSession } from '@/lib/realtime'
@@ -137,6 +136,8 @@ function CoachPageContent() {
   }, [currentSession?.id, currentSession?.status])
 
   const handleStartSession = async () => {
+    console.log('START SESSION CLICKED')
+    
     if (!selectedTemplate) {
       setError('Vennligst velg en template først')
       return
@@ -147,14 +148,36 @@ function CoachPageContent() {
 
     try {
       const templateSnapshot = createTemplateSnapshot(selectedTemplate)
-      const session = await startSession(gymSlug, templateSnapshot)
+      
+      console.log('[handleStartSession] Calling POST /api/coach/sessions/start', {
+        gymSlug,
+        templateId: selectedTemplate.id,
+      })
 
-      if (session) {
-        setCurrentSession(session)
-      } else {
-        setError('Kunne ikke starte session')
+      const response = await fetch('/api/coach/sessions/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gymSlug,
+          templateSnapshot,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Failed to start session: ${response.status}`)
       }
+
+      const session = await response.json()
+      
+      console.log('[handleStartSession] Session started successfully:', session.id)
+
+      // Only update UI state after successful response
+      setCurrentSession(session)
     } catch (err) {
+      console.error('[handleStartSession] Error:', err)
       setError(err instanceof Error ? err.message : 'Ukjent feil')
     } finally {
       setIsStarting(false)
