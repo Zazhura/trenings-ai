@@ -1023,7 +1023,7 @@ function BlockCard({
               {block.steps.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-3 py-4 text-center text-gray-500 text-sm">
-                    Bruk "Slipp øvelse her"-sonen under for å legge til steps
+                    Bruk &quot;Slipp øvelse her&quot;-sonen under for å legge til steps
                   </td>
                 </tr>
               ) : (
