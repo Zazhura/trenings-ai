@@ -11,6 +11,22 @@ interface DisplayContentProps {
 }
 
 export function DisplayContent({ session, debugMode = false }: DisplayContentProps) {
+  // Null guards for template_snapshot and blocks
+  if (!session?.template_snapshot?.blocks || !Array.isArray(session.template_snapshot.blocks)) {
+    return (
+      <div className="flex-1 flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="text-8xl sm:text-9xl font-bold mb-8 text-gray-700">
+            MANGLER TEMPLATE DATA
+          </div>
+          <div className="text-2xl sm:text-3xl text-gray-500">
+            Session ID: {session?.id || 'unknown'}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const currentBlock =
     session.template_snapshot.blocks[session.current_block_index]
   const viewMode = session.view_mode || currentBlock?.block_mode || 'follow_steps'

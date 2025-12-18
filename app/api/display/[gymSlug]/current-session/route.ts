@@ -60,27 +60,61 @@ export async function GET(
     const nowIso = new Date().toISOString()
     const expectedStatuses = ['running', 'paused']
 
-    // Debug: Get latest session for this gym_slug (without status filter) to see what exists
-    type LatestSessionRow = { id?: string; status?: string; gym_slug?: string; created_at?: string; [key: string]: unknown }
-    const { data: latestSessionData, error: latestError } = await supabase
+    console.log('[GET /api/display/[gymSlug]/current-session] Querying for gym_slug:', gymSlug)
+
+    // Resolve gym_id from gym_slug
+    type GymRow = { id?: string; slug?: string; [key: string]: unknown }
+    const { data: gymData, error: gymError } = await supabase
+      .from('gyms')
+      .select('id, slug')
+      .eq('slug', gymSlug)
+      .maybeSingle()
+
+    const gym = gymData ? (gymData as GymRow) : null
+    const gymId = gym?.id
+
+    console.log('[GET /api/display/[gymSlug]/current-session] Resolved gym:', {
+      gymSlug,
+      gymId,
+      gymSlugFromDb: gym?.slug,
+    })
+
+    // Debug: Get latest session for this gym (without status filter) to see what exists
+    type LatestSessionRow = { id?: string; status?: string; gym_id?: string; gym_slug?: string; created_at?: string; [key: string]: unknown }
+    
+    // Try querying by gym_id first, fallback to gym_slug if gym_id is null
+    let latestQuery = supabase
       .from('sessions')
-      .select('id, status, gym_slug, created_at')
-      .eq('gym_slug', gymSlug)
+      .select('id, status, gym_id, gym_slug, created_at')
       .order('created_at', { ascending: false })
       .limit(1)
-      .maybeSingle()
+    
+    if (gymId) {
+      latestQuery = latestQuery.eq('gym_id', gymId)
+    } else {
+      latestQuery = latestQuery.eq('gym_slug', gymSlug)
+    }
+    
+    const { data: latestSessionData, error: latestError } = await latestQuery.maybeSingle()
     
     const latestSession = latestSessionData ? (latestSessionData as LatestSessionRow) : null
 
     // Get most recent running/paused session for this gym
-    const { data, error } = await supabase
+    // Try gym_id first, fallback to gym_slug
+    let sessionQuery = supabase
       .from('sessions')
       .select('*')
-      .eq('gym_slug', gymSlug)
       .in('status', expectedStatuses)
       .order('created_at', { ascending: false })
       .limit(1)
-      .maybeSingle()
+    
+    if (gymId) {
+      sessionQuery = sessionQuery.eq('gym_id', gymId)
+    } else {
+      sessionQuery = sessionQuery.eq('gym_slug', gymSlug)
+    }
+    
+    const { data, error } = await sessionQuery.maybeSingle()
 
     if (error) {
       console.error('[current-session] Error fetching current session:', error)
@@ -89,12 +123,14 @@ export async function GET(
           error: 'Failed to fetch session',
           debug: {
             gymSlug,
+            gymId: gymId || null,
             nowIso,
             expectedStatuses,
             queryError: error.message,
             latestSession: latestSession ? {
               id: latestSession.id,
               status: latestSession.status,
+              gym_id: latestSession.gym_id,
               gym_slug: latestSession.gym_slug,
               created_at: latestSession.created_at,
             } : null,
@@ -106,17 +142,30 @@ export async function GET(
 
     // No active session found - return debug info
     if (!data) {
+      console.log('[GET /api/display/[gymSlug]/current-session] No active session found', {
+        gymSlug,
+        latestSession: latestSession ? {
+          id: latestSession.id,
+          status: latestSession.status,
+          gym_slug: latestSession.gym_slug,
+        } : null,
+      })
+      
       return NextResponse.json({
         session: null,
         debug: {
           gymSlug,
+          gymId: gymId || null,
           nowIso,
           expectedStatuses,
           queryTable: 'sessions',
-          queryFilter: `gym_slug = '${gymSlug}' AND status IN (${expectedStatuses.join(', ')})`,
+          queryFilter: gymId 
+            ? `gym_id = '${gymId}' AND status IN (${expectedStatuses.join(', ')})`
+            : `gym_slug = '${gymSlug}' AND status IN (${expectedStatuses.join(', ')})`,
           latestSession: latestSession ? {
             id: latestSession.id,
             status: latestSession.status,
+            gym_id: latestSession.gym_id,
             gym_slug: latestSession.gym_slug,
             created_at: latestSession.created_at,
           } : null,
@@ -132,13 +181,17 @@ export async function GET(
       session: sessionState,
       debug: {
         gymSlug,
+        gymId: gymId || null,
         nowIso,
         expectedStatuses,
         queryTable: 'sessions',
-        queryFilter: `gym_slug = '${gymSlug}' AND status IN (${expectedStatuses.join(', ')})`,
+        queryFilter: gymId 
+          ? `gym_id = '${gymId}' AND status IN (${expectedStatuses.join(', ')})`
+          : `gym_slug = '${gymSlug}' AND status IN (${expectedStatuses.join(', ')})`,
         latestSession: latestSession ? {
           id: latestSession.id,
           status: latestSession.status,
+          gym_id: latestSession.gym_id,
           gym_slug: latestSession.gym_slug,
           created_at: latestSession.created_at,
         } : null,

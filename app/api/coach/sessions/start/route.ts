@@ -45,12 +45,50 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { gymSlug, templateSnapshot } = body
 
+    console.log('[POST /api/coach/sessions/start] Received request:', {
+      gymSlug,
+      templateId: templateSnapshot?.blocks?.[0]?.name || 'unknown',
+      hasTemplateSnapshot: !!templateSnapshot,
+    })
+
     if (!gymSlug || !templateSnapshot) {
       return NextResponse.json(
         { error: 'gymSlug and templateSnapshot are required' },
         { status: 400 }
       )
     }
+
+    // Resolve gym_id from gym_slug
+    const adminClient = getAdminClient()
+    const { data: gymData, error: gymError } = await adminClient
+      .from('gyms')
+      .select('id, slug')
+      .eq('slug', gymSlug)
+      .maybeSingle()
+
+    if (gymError) {
+      console.error('[POST /api/coach/sessions/start] Error resolving gym:', gymError)
+      return NextResponse.json(
+        { error: 'Failed to resolve gym', details: gymError.message },
+        { status: 500 }
+      )
+    }
+
+    if (!gymData) {
+      return NextResponse.json(
+        { error: `Gym not found with slug: ${gymSlug}` },
+        { status: 404 }
+      )
+    }
+
+    const gymId = (gymData as any).id
+    const resolvedGymSlug = (gymData as any).slug || gymSlug
+
+    console.log('[POST /api/coach/sessions/start] Resolved gym:', {
+      gymSlug,
+      resolvedGymSlug,
+      gymId,
+    })
 
     // Validate template has blocks
     if (!templateSnapshot.blocks || templateSnapshot.blocks.length === 0) {
@@ -108,11 +146,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Use admin client to insert session (bypasses RLS)
-    const adminClient = getAdminClient()
-
     const insertPayload: Record<string, unknown> = {
-      gym_slug: gymSlug,
+      gym_id: gymId,
+      gym_slug: resolvedGymSlug,
       status: SessionStatus.RUNNING,
       current_block_index: 0,
       current_step_index: currentStepIndex,
@@ -123,6 +159,8 @@ export async function POST(request: NextRequest) {
       state_version: 1,
       template_snapshot: templateSnapshot,
     }
+
+    console.log('[POST /api/coach/sessions/start] Inserting session with gym_slug:', gymSlug)
 
     const { data, error } = await (adminClient
       .from('sessions') as any)
@@ -137,6 +175,12 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    console.log('[POST /api/coach/sessions/start] Session created successfully:', {
+      id: data.id,
+      gym_slug: data.gym_slug,
+      status: data.status,
+    })
 
     // Convert database response to SessionState
     const sessionState = dbToSessionState(data)
