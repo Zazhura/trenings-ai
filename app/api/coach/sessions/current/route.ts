@@ -41,31 +41,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user's gym slug
-    const { data: gymData, error: gymError } = await supabase
-      .from('user_roles')
-      .select('gyms!inner(slug)')
-      .eq('user_id', user.id)
-      .in('role', ['gym_admin', 'coach'])
-      .not('gym_id', 'is', null)
-      .limit(1)
-      .maybeSingle()
-
-    if (gymError || !gymData) {
-      return NextResponse.json(
-        { error: 'User has no gym' },
-        { status: 404 }
-      )
-    }
-
-    const gymSlug = (gymData as any).gyms?.slug
-    if (!gymSlug) {
-      return NextResponse.json(
-        { error: 'User gym not found' },
-        { status: 404 }
-      )
-    }
-
     // Check if service role key is configured
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!serviceRoleKey) {
@@ -76,24 +51,40 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Use admin client to bypass RLS and get current session
+    // Use admin client to bypass RLS and get user's gym_id
     const adminClient = getAdminClient()
 
-    // Resolve gym_id from gym_slug
-    const { data: gymLookupData, error: gymLookupError } = await adminClient
-      .from('gyms')
-      .select('id')
-      .eq('slug', gymSlug)
-      .maybeSingle()
+    // Get gym IDs user has access to (bypasses RLS) - same approach as /api/user/gym
+    const { data: userRoles, error: rolesError } = await adminClient
+      .from('user_roles')
+      .select('gym_id, role')
+      .eq('user_id', user.id)
+      .in('role', ['gym_admin', 'coach'])
+      .not('gym_id', 'is', null)
+      .limit(1)
 
-    if (gymLookupError || !gymLookupData) {
+    if (rolesError) {
+      console.error('[GET /api/coach/sessions/current] Error fetching user roles:', rolesError)
       return NextResponse.json(
-        { error: 'Gym not found' },
+        { error: 'Failed to fetch user roles', details: rolesError.message },
+        { status: 500 }
+      )
+    }
+
+    if (!userRoles || userRoles.length === 0) {
+      return NextResponse.json(
+        { error: 'User has no gym' },
         { status: 404 }
       )
     }
 
-    const gymId = (gymLookupData as any).id
+    const gymId = (userRoles[0] as { gym_id: string; role: string }).gym_id
+    if (!gymId) {
+      return NextResponse.json(
+        { error: 'User gym not found' },
+        { status: 404 }
+      )
+    }
 
     // Get most recent running/paused session for this gym
     const { data, error } = await adminClient
