@@ -4,6 +4,19 @@ import { isAdmin } from '@/lib/auth/admin'
 import type { Exercise, ExerciseStatus } from '@/types/exercise'
 
 /**
+ * Type for exercise updates (only updatable fields)
+ */
+type ExerciseUpdate = {
+  name?: string
+  aliases?: string[]
+  category?: string | null
+  equipment?: string[]
+  description?: string | null
+  video_url?: string | null
+  status?: ExerciseStatus
+}
+
+/**
  * PATCH /api/admin/exercises/[id]
  * Update an exercise - Admin only
  */
@@ -24,7 +37,7 @@ export async function PATCH(
     const supabase = getAdminClient()
 
     // Build update object
-    const updates: any = {}
+    const updates: ExerciseUpdate = {}
     if (name !== undefined) updates.name = name.trim()
     if (aliases !== undefined) {
       updates.aliases = Array.isArray(aliases) 
@@ -42,8 +55,9 @@ export async function PATCH(
     }
 
     // Update exercise
-    const { data, error } = await supabase
-      .from('exercises')
+    // Use type assertion to work around Supabase strict typing
+    const { data, error } = await (supabase
+      .from('exercises') as any)
       .update(updates)
       .eq('id', params.id)
       .select()
