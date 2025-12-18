@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { SessionState, SessionStatus, TemplateSnapshot } from '@/types/session'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * Convert database row to SessionState
  */
@@ -43,6 +45,16 @@ export async function GET(
       )
     }
 
+    // Check if service role key is configured before calling getAdminClient()
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceRoleKey) {
+      console.error('[current-session] Missing SUPABASE_SERVICE_ROLE_KEY environment variable')
+      return NextResponse.json(
+        { error: 'Missing SUPABASE_SERVICE_ROLE_KEY - server configuration error' },
+        { status: 500 }
+      )
+    }
+
     const supabase = getAdminClient()
 
     // Get most recent running/paused session for this gym
@@ -75,8 +87,20 @@ export async function GET(
     return NextResponse.json(sessionState)
   } catch (error) {
     console.error('Unexpected error in current-session endpoint:', error)
+    
+    // Check if error is about missing service role key
+    if (error instanceof Error && error.message.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+      return NextResponse.json(
+        { error: 'Missing SUPABASE_SERVICE_ROLE_KEY - server configuration error' },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
