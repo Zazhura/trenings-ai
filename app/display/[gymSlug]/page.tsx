@@ -19,16 +19,25 @@ async function fetchCurrentSession(gymSlug: string): Promise<SessionState | null
       return null
     }
     const data = await response.json()
-    if (!data) {
+    
+    // Handle new response format with debug info
+    const session = data.session || data
+    
+    if (!session) {
+      // Log debug info if available
+      if (data.debug) {
+        console.log('[fetchCurrentSession] Debug info:', data.debug)
+      }
       return null
     }
+    
     // Convert ISO strings back to Date objects
     return {
-      ...data,
-      step_end_time: data.step_end_time ? new Date(data.step_end_time) : null,
-      block_end_time: data.block_end_time ? new Date(data.block_end_time) : null,
-      created_at: new Date(data.created_at),
-      updated_at: new Date(data.updated_at),
+      ...session,
+      step_end_time: session.step_end_time ? new Date(session.step_end_time) : null,
+      block_end_time: session.block_end_time ? new Date(session.block_end_time) : null,
+      created_at: new Date(session.created_at),
+      updated_at: new Date(session.updated_at),
     } as SessionState
   } catch (error) {
     console.error('Error fetching current session:', error)

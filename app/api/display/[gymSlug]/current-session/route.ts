@@ -57,34 +57,93 @@ export async function GET(
 
     const supabase = getAdminClient()
 
+    const nowIso = new Date().toISOString()
+    const expectedStatuses = ['running', 'paused']
+
+    // Debug: Get latest session for this gym_slug (without status filter) to see what exists
+    type LatestSessionRow = { id?: string; status?: string; gym_slug?: string; created_at?: string; [key: string]: unknown }
+    const { data: latestSessionData, error: latestError } = await supabase
+      .from('sessions')
+      .select('id, status, gym_slug, created_at')
+      .eq('gym_slug', gymSlug)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    
+    const latestSession = latestSessionData ? (latestSessionData as LatestSessionRow) : null
+
     // Get most recent running/paused session for this gym
     const { data, error } = await supabase
       .from('sessions')
       .select('*')
       .eq('gym_slug', gymSlug)
-      .in('status', ['running', 'paused'])
+      .in('status', expectedStatuses)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
     if (error) {
-      console.error('Error fetching current session:', error)
+      console.error('[current-session] Error fetching current session:', error)
       return NextResponse.json(
-        { error: 'Failed to fetch session' },
+        { 
+          error: 'Failed to fetch session',
+          debug: {
+            gymSlug,
+            nowIso,
+            expectedStatuses,
+            queryError: error.message,
+            latestSession: latestSession ? {
+              id: latestSession.id,
+              status: latestSession.status,
+              gym_slug: latestSession.gym_slug,
+              created_at: latestSession.created_at,
+            } : null,
+          }
+        },
         { status: 500 }
       )
     }
 
-    // No active session found
+    // No active session found - return debug info
     if (!data) {
-      return NextResponse.json(null)
+      return NextResponse.json({
+        session: null,
+        debug: {
+          gymSlug,
+          nowIso,
+          expectedStatuses,
+          queryTable: 'sessions',
+          queryFilter: `gym_slug = '${gymSlug}' AND status IN (${expectedStatuses.join(', ')})`,
+          latestSession: latestSession ? {
+            id: latestSession.id,
+            status: latestSession.status,
+            gym_slug: latestSession.gym_slug,
+            created_at: latestSession.created_at,
+          } : null,
+        }
+      })
     }
 
     // Convert to SessionState and return
     const sessionState = dbToSessionState(data)
     
-    // Return as JSON (dates will be serialized as ISO strings)
-    return NextResponse.json(sessionState)
+    // Return as JSON with debug info (dates will be serialized as ISO strings)
+    return NextResponse.json({
+      session: sessionState,
+      debug: {
+        gymSlug,
+        nowIso,
+        expectedStatuses,
+        queryTable: 'sessions',
+        queryFilter: `gym_slug = '${gymSlug}' AND status IN (${expectedStatuses.join(', ')})`,
+        latestSession: latestSession ? {
+          id: latestSession.id,
+          status: latestSession.status,
+          gym_slug: latestSession.gym_slug,
+          created_at: latestSession.created_at,
+        } : null,
+      }
+    })
   } catch (error) {
     console.error('Unexpected error in current-session endpoint:', error)
     
