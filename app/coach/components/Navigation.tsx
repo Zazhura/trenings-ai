@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { isPlatformAdminClient, isAnyGymAdminClient } from '@/lib/auth/roles-client'
+// Removed direct Supabase calls - using API endpoints instead
 import { cn } from '@/lib/utils'
 
 interface NavLink {
@@ -31,12 +31,12 @@ export function Navigation() {
     const checkRoles = async () => {
       setLoading(true)
       try {
-        const [gymAdmin, platformAdmin] = await Promise.all([
-          isAnyGymAdminClient(),
-          isPlatformAdminClient(),
-        ])
-        setIsGymAdmin(gymAdmin)
-        setIsPlatformAdmin(platformAdmin)
+        const response = await fetch('/api/user/roles')
+        if (response.ok) {
+          const data = await response.json()
+          setIsGymAdmin(data.isAnyGymAdmin || false)
+          setIsPlatformAdmin(data.isPlatformAdmin || false)
+        }
       } catch (error) {
         console.error('Error checking roles:', error)
       } finally {

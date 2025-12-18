@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Template, DatabaseTemplate } from '@/types/template'
 import { getAllTemplates } from '@/lib/templates'
-import { getUserPrimaryGymClient } from '@/lib/auth/get-user-gym-client'
-import { getGymTemplates } from '@/lib/templates/db-operations'
 import {
   Card,
   CardContent,
@@ -31,15 +29,29 @@ export function TemplateSelector({
     loadTemplates()
   }, [])
 
+  // Refresh templates when component becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadTemplates()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
+
   const loadTemplates = async () => {
     setLoading(true)
     try {
-      // Try to load from database first
-      const gym = await getUserPrimaryGymClient()
-      if (gym) {
-        const dbTemplates = await getGymTemplates(gym.id)
+      // Load from API - only use 'own' templates (not demo) for dashboard selector
+      const response = await fetch('/api/templates')
+      if (response.ok) {
+        const data = await response.json()
+        // Use 'own' array which contains only gym-specific custom templates (is_demo=false)
+        // Demo templates should not appear in dashboard selector - user must duplicate first
+        const ownTemplates = data.own || []
         // Convert DatabaseTemplate to Template format
-        const convertedTemplates: Template[] = dbTemplates.map(t => ({
+        const convertedTemplates: Template[] = ownTemplates.map((t: DatabaseTemplate) => ({
           id: t.id,
           name: t.name,
           description: t.description,
@@ -50,7 +62,7 @@ export function TemplateSelector({
         return
       }
     } catch (error) {
-      console.error('Error loading templates from database:', error)
+      console.error('Error loading templates from API:', error)
     }
 
     // Fallback to hardcoded templates

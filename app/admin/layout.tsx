@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { isPlatformAdmin } from '@/lib/auth/roles'
+import { isAdmin } from '@/lib/auth/admin'
 
 export default async function AdminLayout({
   children,
@@ -18,9 +18,9 @@ export default async function AdminLayout({
     redirect('/login')
   }
 
-  // Check if user is platform admin
-  const isAdmin = await isPlatformAdmin()
-  if (!isAdmin) {
+  // Check if user is admin (platform_admin role OR in ADMIN_EMAILS allowlist)
+  const admin = await isAdmin()
+  if (!admin) {
     redirect('/coach')
   }
 

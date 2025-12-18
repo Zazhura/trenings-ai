@@ -12,16 +12,19 @@ export function CountdownTimer({ session }: CountdownTimerProps) {
   const [serverTimeOffset, setServerTimeOffset] = useState<number>(0)
 
   // Resync server time periodically to handle clock drift
-  // Use step_end_time from session as reference point
+  // Use step_end_time or block_end_time from session as reference point
   useEffect(() => {
-    if (!session.step_end_time) return
+    const viewMode = session.view_mode || 'follow_steps'
+    const endTime = viewMode === 'follow_steps' ? session.step_end_time : session.block_end_time
+    
+    if (!endTime) return
 
     const syncTime = () => {
-      // Use the step_end_time as server reference
+      // Use the end_time as server reference
       // Calculate offset based on when we received the session state
-      const serverTime = new Date(session.step_end_time!).getTime()
+      const serverTime = new Date(endTime!).getTime()
       const clientTime = Date.now()
-      // Estimate offset: if step_end_time is in the future, client might be behind
+      // Estimate offset: if end_time is in the future, client might be behind
       // This is a simple approach - in production you'd want a proper time sync endpoint
       const estimatedOffset = 0 // Start with no offset, adjust if needed
       setServerTimeOffset(estimatedOffset)
@@ -32,16 +35,25 @@ export function CountdownTimer({ session }: CountdownTimerProps) {
     const syncInterval = setInterval(syncTime, 30000)
 
     return () => clearInterval(syncInterval)
-  }, [session.step_end_time])
+  }, [session.step_end_time, session.block_end_time, session.view_mode])
 
   // Calculate remaining time
   // TASK-050: Handle refresh mid-step - calculates correct remaining time when page loads mid-step
+  // Supports both step_end_time (follow_steps) and block_end_time (block modes)
   useEffect(() => {
     const calculateRemaining = () => {
-      if (session.step_end_time) {
-        // When running: calculate from step_end_time
+      const viewMode = session.view_mode || 'follow_steps'
+      
+      if (viewMode === 'follow_steps' && session.step_end_time) {
+        // follow_steps mode: use step_end_time
         const now = Date.now() + serverTimeOffset
         const endTime = new Date(session.step_end_time).getTime()
+        const remaining = Math.max(0, endTime - now)
+        setRemainingMs(remaining)
+      } else if (viewMode !== 'follow_steps' && session.block_end_time) {
+        // Block modes: use block_end_time
+        const now = Date.now() + serverTimeOffset
+        const endTime = new Date(session.block_end_time).getTime()
         const remaining = Math.max(0, endTime - now)
         setRemainingMs(remaining)
       } else if (session.remaining_ms !== null && session.remaining_ms !== undefined) {
@@ -59,7 +71,7 @@ export function CountdownTimer({ session }: CountdownTimerProps) {
     const interval = setInterval(calculateRemaining, 1000)
 
     return () => clearInterval(interval)
-  }, [session.step_end_time, session.remaining_ms, serverTimeOffset])
+  }, [session.step_end_time, session.block_end_time, session.remaining_ms, session.view_mode, serverTimeOffset])
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000)

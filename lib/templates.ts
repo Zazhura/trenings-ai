@@ -254,15 +254,24 @@ export function getAllTemplates(): Template[] {
 /**
  * Create template snapshot from template
  * Serializes template to JSON format for storage in session
+ * Includes all block and step fields for proper display handling
  */
 export function createTemplateSnapshot(template: Template): TemplateSnapshot {
   return {
     blocks: template.blocks.map((block) => ({
       name: block.name,
+      block_mode: block.block_mode || 'follow_steps', // Default to follow_steps
+      block_duration_seconds: block.block_duration_seconds ?? null,
+      block_sets: block.block_sets ?? null,
+      block_rest_seconds: block.block_rest_seconds ?? null,
       steps: block.steps.map((step) => ({
         title: step.title,
-        duration: step.duration,
-        mediaUrl: step.mediaUrl, // Include mediaUrl if present
+        duration: step.duration ?? undefined, // Duration in milliseconds (for time kind)
+        exercise_id: step.exercise_id ?? undefined,
+        mediaUrl: step.mediaUrl ?? undefined, // @deprecated - backward compatibility
+        step_kind: step.step_kind ?? 'note', // Default to note
+        reps: step.reps ?? undefined, // For reps kind
+        description: step.description ?? undefined, // Optional description
       })),
     })),
   }

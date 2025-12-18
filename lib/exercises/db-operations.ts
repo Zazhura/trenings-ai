@@ -26,6 +26,26 @@ export async function getActiveExercises(): Promise<Exercise[]> {
 }
 
 /**
+ * Search exercises via API (for client-side use)
+ */
+export async function searchExercisesAPI(query: string): Promise<Exercise[]> {
+  try {
+    const response = await fetch(`/api/exercises?query=${encodeURIComponent(query)}`)
+    if (!response.ok) {
+      return []
+    }
+    const data = await response.json()
+    return data.map((row: any) => ({
+      ...row,
+      created_at: new Date(row.created_at),
+    }))
+  } catch (error) {
+    console.error('Error searching exercises via API:', error)
+    return []
+  }
+}
+
+/**
  * Get all exercises (including archived) - Platform Admin only
  */
 export async function getAllExercises(): Promise<Exercise[]> {
@@ -158,8 +178,11 @@ export async function createExercise(exercise: Omit<Exercise, 'id' | 'created_at
       name: exercise.name,
       aliases: exercise.aliases || [],
       category: exercise.category || null,
-      equipment: exercise.equipment || null,
-      status: exercise.status,
+      equipment: Array.isArray(exercise.equipment) ? exercise.equipment : [],
+      description: exercise.description || null,
+      video_url: exercise.video_url || null,
+      media_svg_url: exercise.media_svg_url || null,
+      status: exercise.status || 'active',
       motion_asset_url: exercise.motion_asset_url || null,
       video_asset_url: exercise.video_asset_url || null,
       poster_url: exercise.poster_url || null,
@@ -173,6 +196,39 @@ export async function createExercise(exercise: Omit<Exercise, 'id' | 'created_at
   }
 
   return mapDbToExercise(data)
+}
+
+/**
+ * Create exercise via API (for client-side use)
+ */
+export async function createExerciseAPI(exercise: {
+  name: string
+  aliases?: string[]
+  category?: string
+  equipment?: string[]
+  description?: string
+  video_url?: string
+}): Promise<Exercise | null> {
+  try {
+    const response = await fetch('/api/exercises', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(exercise),
+    })
+    if (!response.ok) {
+      const error = await response.json()
+      console.error('Error creating exercise via API:', error)
+      return null
+    }
+    const data = await response.json()
+    return {
+      ...data,
+      created_at: new Date(data.created_at),
+    }
+  } catch (error) {
+    console.error('Error creating exercise via API:', error)
+    return null
+  }
 }
 
 /**
@@ -212,14 +268,17 @@ function mapDbToExercise(row: any): Exercise {
     id: row.id,
     name: row.name,
     aliases: row.aliases || [],
-    category: row.category || undefined,
-    equipment: row.equipment || undefined,
-    status: row.status as ExerciseStatus,
+    category: row.category || null,
+    equipment: Array.isArray(row.equipment) ? row.equipment : (row.equipment ? [row.equipment] : []),
+    description: row.description || null,
+    video_url: row.video_url || null,
+    media_svg_url: row.media_svg_url || null,
+    status: (row.status as ExerciseStatus) || 'active',
     motion_asset_url: row.motion_asset_url || undefined,
     video_asset_url: row.video_asset_url || undefined,
     poster_url: row.poster_url || undefined,
     created_at: new Date(row.created_at),
-    updated_at: new Date(row.updated_at),
+    updated_at: row.updated_at ? new Date(row.updated_at) : undefined,
   }
 }
 

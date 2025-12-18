@@ -13,6 +13,7 @@ import { createTemplateSnapshot } from '@/lib/templates'
 import { SessionState, SessionStatus } from '@/types/session'
 import { subscribeToSessionChanges, getCurrentSession } from '@/lib/realtime'
 import { getUserPrimaryGymClient } from '@/lib/auth/get-user-gym-client'
+import { DebugFooter } from '@/components/debug/DebugFooter'
 import {
   pageHeaderClasses,
   pageTitleClasses,
@@ -167,78 +168,84 @@ function CoachPageContent() {
       currentSession.status === SessionStatus.PAUSED)
 
   return (
-    <AppShell header={<Navigation />}>
-      {/* Page Header */}
-      <div className={pageHeaderClasses}>
-        <h1 className={pageTitleClasses}>Coach Dashboard</h1>
-        <p className={pageDescriptionClasses}>
-          Start, pause og styr økten fra ett sted.
-        </p>
-      </div>
+    <>
+      <AppShell header={<Navigation />}>
+        {/* Page Header */}
+        <div className={pageHeaderClasses}>
+          <h1 className={pageTitleClasses}>Coach Dashboard</h1>
+          <p className={pageDescriptionClasses}>
+            Start, pause og styr økten fra ett sted.
+          </p>
+        </div>
 
-      <div className={spacing.lg}>
-        {/* Session Status Section */}
-        {!hasActiveSession && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Ingen aktiv økt</CardTitle>
-              <CardDescription>
-                Velg en template og start en session.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        )}
-
-        {hasActiveSession && (
-          <div className={spacing.md}>
-            <SessionStatusComponent session={currentSession} />
-            <SessionControls session={currentSession} />
-          </div>
-        )}
-
-        {/* Template Selection Section */}
-        <div className={spacing.md}>
-          <TemplateSelector
-            onSelect={setSelectedTemplate}
-            selectedTemplateId={selectedTemplate?.id}
-          />
-          
-          {selectedTemplate && (
+        <div className={`${spacing.lg} pb-20`}>
+          {/* Session Status Section */}
+          {!hasActiveSession && (
             <Card>
               <CardHeader>
-                <CardTitle>Valgt template</CardTitle>
-                <CardDescription>{selectedTemplate.name}</CardDescription>
+                <CardTitle>Ingen aktiv økt</CardTitle>
+                <CardDescription>
+                  Velg en template og start en session.
+                </CardDescription>
               </CardHeader>
-              <CardContent className={spacing.sm}>
-                <Button
-                  onClick={handleStartSession}
-                  disabled={isStarting || !!hasActiveSession}
-                  size="lg"
-                  className="w-full sm:w-auto"
-                >
-                  {isStarting ? (
-                    <>
-                      <span className="mr-2">Starter...</span>
-                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    </>
-                  ) : (
-                    'Start Session'
-                  )}
-                </Button>
-                {error && (
-                  <div
-                    role="alert"
-                    className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm border border-destructive/20"
-                  >
-                    {error}
-                  </div>
-                )}
-              </CardContent>
             </Card>
           )}
+
+          {hasActiveSession && (
+            <div className={spacing.md}>
+              <SessionStatusComponent session={currentSession} />
+              <SessionControls session={currentSession} />
+            </div>
+          )}
+
+          {/* Template Selection Section */}
+          <div className={spacing.md}>
+            <TemplateSelector
+              onSelect={setSelectedTemplate}
+              selectedTemplateId={selectedTemplate?.id}
+            />
+            
+            {selectedTemplate && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Valgt template</CardTitle>
+                  <CardDescription>{selectedTemplate.name}</CardDescription>
+                </CardHeader>
+                <CardContent className={spacing.sm}>
+                  <Button
+                    onClick={handleStartSession}
+                    disabled={isStarting || !!hasActiveSession}
+                    size="lg"
+                    className="w-full sm:w-auto"
+                  >
+                    {isStarting ? (
+                      <>
+                        <span className="mr-2">Starter...</span>
+                        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      </>
+                    ) : (
+                      'Start Session'
+                    )}
+                  </Button>
+                  {error && (
+                    <div
+                      role="alert"
+                      className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm border border-destructive/20"
+                    >
+                      {error}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
-      </div>
-    </AppShell>
+      </AppShell>
+      <DebugFooter
+        gymSlug={gymSlug}
+        currentSessionId={currentSession?.id}
+      />
+    </>
   )
 }
 

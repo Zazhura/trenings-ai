@@ -1,38 +1,37 @@
 /**
  * Client-side version of get-user-gym utilities
- * Uses client-side Supabase client
+ * Uses API endpoint to avoid RLS issues
  */
 
-import { createClient } from '@/lib/supabase/client'
-import { getGymById } from '@/lib/gyms/db-operations'
 import type { Gym } from '@/types/gym'
 
 /**
  * Get user's primary gym (first gym they have access to) - Client version
+ * Uses /api/user/gym endpoint to avoid RLS recursion issues
  */
 export async function getUserPrimaryGymClient(): Promise<Gym | null> {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
+  try {
+    const response = await fetch('/api/user/gym')
+    if (!response.ok) {
+      return null
+    }
+
+    const data = await response.json()
+    if (!data.gym) {
+      return null
+    }
+
+    // Map API response to Gym type
+    return {
+      id: data.gym.id,
+      slug: data.gym.slug,
+      name: data.gym.name,
+      created_at: new Date(), // API doesn't return dates, use current date
+      updated_at: new Date(),
+    }
+  } catch (error) {
+    console.error('Error fetching user gym:', error)
     return null
   }
-
-  const { data, error } = await supabase
-    .from('user_roles')
-    .select('gym_id')
-    .eq('user_id', user.id)
-    .in('role', ['gym_admin', 'coach'])
-
-  if (error || !data || data.length === 0) {
-    return null
-  }
-
-  const gymId = data[0].gym_id
-  if (!gymId) {
-    return null
-  }
-
-  return getGymById(gymId)
 }
 

@@ -44,6 +44,8 @@ export function SessionControls({
   const isRunning = session.status === SessionStatus.RUNNING
   const isPaused = session.status === SessionStatus.PAUSED
   const isActive = isRunning || isPaused
+  const viewMode = session.view_mode || 'follow_steps'
+  const isFollowStepsMode = viewMode === 'follow_steps'
 
   return (
     <div className="space-y-4">
@@ -98,25 +100,28 @@ export function SessionControls({
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {/* Prev Step button */}
-            <button
-              onClick={() => handleAction(() => prevStep(session.id))}
-              disabled={isLoading}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Prev Step
-            </button>
+          {/* Step controls - only enabled in follow_steps mode */}
+          {isFollowStepsMode && (
+            <div className="flex flex-wrap gap-2">
+              {/* Prev Step button */}
+              <button
+                onClick={() => handleAction(() => prevStep(session.id))}
+                disabled={isLoading}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Prev Step
+              </button>
 
-            {/* Next Step button */}
-            <button
-              onClick={() => handleAction(() => nextStep(session.id))}
-              disabled={isLoading}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next Step
-            </button>
-          </div>
+              {/* Next Step button */}
+              <button
+                onClick={() => handleAction(() => nextStep(session.id))}
+                disabled={isLoading}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next Step
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

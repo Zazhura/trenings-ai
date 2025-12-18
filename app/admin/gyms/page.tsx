@@ -6,7 +6,7 @@ import { Navigation } from '@/app/coach/components/Navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { getAllGyms, createGym } from '@/lib/gyms/db-operations'
+import Link from 'next/link'
 import type { Gym } from '@/types/gym'
 import {
   pageHeaderClasses,
@@ -27,10 +27,15 @@ export default function GymsPage() {
   const loadGyms = async () => {
     setLoading(true)
     try {
-      const data = await getAllGyms()
+      const response = await fetch('/api/admin/gyms')
+      if (!response.ok) {
+        throw new Error('Failed to load gyms')
+      }
+      const data = await response.json()
       setGyms(data)
     } catch (error) {
       console.error('Error loading gyms:', error)
+      alert('Kunne ikke laste gyms')
     } finally {
       setLoading(false)
     }
@@ -42,11 +47,22 @@ export default function GymsPage() {
     const slug = formData.get('slug') as string
     const name = formData.get('name') as string
 
-    const newGym = await createGym({ slug, name })
+    try {
+      const response = await fetch('/api/admin/gyms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, name }),
+      })
 
-    if (newGym) {
+      if (!response.ok) {
+        throw new Error('Failed to create gym')
+      }
+
       setShowCreateForm(false)
       loadGyms()
+    } catch (error) {
+      console.error('Error creating gym:', error)
+      alert('Kunne ikke opprette gym')
     }
   }
 
@@ -114,8 +130,16 @@ export default function GymsPage() {
                   <CardDescription>Slug: {gym.slug}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-gray-600 mb-4">
                     Display URL: <code className="bg-gray-100 px-1 rounded">/display/{gym.slug}</code>
+                  </div>
+                  <div className="flex gap-2">
+                    <Link href={`/admin/gyms/${gym.id}`}>
+                      <Button variant="outline">Administrer brukere</Button>
+                    </Link>
+                    <Link href={`/admin/gyms/${gym.id}/exercises`}>
+                      <Button variant="outline">Administrer øvelser</Button>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

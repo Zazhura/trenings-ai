@@ -11,8 +11,10 @@ function dbToSessionState(data: any): SessionState {
     gym_slug: data.gym_slug,
     status: data.status as SessionStatus,
     current_block_index: data.current_block_index,
-    current_step_index: data.current_step_index,
+    current_step_index: data.current_step_index ?? null,
+    view_mode: data.view_mode || 'follow_steps',
     step_end_time: data.step_end_time ? new Date(data.step_end_time) : null,
+    block_end_time: data.block_end_time ? new Date(data.block_end_time) : null,
     remaining_ms: data.remaining_ms,
     state_version: data.state_version,
     template_snapshot: data.template_snapshot as TemplateSnapshot,
@@ -23,7 +25,8 @@ function dbToSessionState(data: any): SessionState {
 
 /**
  * Auto-advance logic
- * Checks step_end_time, advances to next step/block or sets ended status, increments state_version
+ * Checks step_end_time or block_end_time based on view_mode
+ * Advances to next step/block or sets ended status, increments state_version
  * TASK-053: Idempotent state updates - checks state_version to prevent duplicate auto-advance
  * If state_version has changed since we fetched the session, another process already advanced it
  */
@@ -59,18 +62,46 @@ export async function checkAndAdvanceSession(
     return null
   }
 
-  // Check if step_end_time has passed
-  if (!currentSession.step_end_time) {
-    // No step_end_time means session is paused or stopped
-    return null
+  const viewMode = currentSession.view_mode || 'follow_steps'
+  const now = new Date()
+  let shouldAdvance = false
+  let advanceToNextBlock = false
+
+  if (viewMode === 'follow_steps') {
+    // follow_steps mode: check step_end_time
+    if (!currentSession.step_end_time) {
+      // No step_end_time means untimed step - no auto-advance
+      return null
+    }
+
+    const stepEndTime = new Date(currentSession.step_end_time)
+    if (now.getTime() >= stepEndTime.getTime()) {
+      shouldAdvance = true
+      // Check if we need to advance to next block
+      const templateSnapshot = currentSession.template_snapshot as TemplateSnapshot
+      const currentBlock = templateSnapshot.blocks[currentSession.current_block_index]
+      const currentStepIndex = currentSession.current_step_index
+      
+      if (currentStepIndex !== null && currentStepIndex + 1 >= currentBlock.steps.length) {
+        // Last step in current block - advance to next block
+        advanceToNextBlock = true
+      }
+    }
+  } else {
+    // Block modes: check block_end_time
+    if (!currentSession.block_end_time) {
+      // No block_end_time means untimed block - no auto-advance
+      return null
+    }
+
+    const blockEndTime = new Date(currentSession.block_end_time)
+    if (now.getTime() >= blockEndTime.getTime()) {
+      shouldAdvance = true
+      advanceToNextBlock = true
+    }
   }
 
-  const stepEndTime = new Date(currentSession.step_end_time)
-  const now = new Date()
-
-  // Check if time has passed (with small buffer to handle timing issues)
-  if (now.getTime() < stepEndTime.getTime()) {
-    // Not time to advance yet
+  if (!shouldAdvance) {
     return null
   }
 
@@ -79,15 +110,50 @@ export async function checkAndAdvanceSession(
   const oldStepIndex = currentSession.current_step_index
   const oldStateVersion = currentSession.state_version
 
-  // Time to advance - use nextStep function which handles all the logic
-  // This will advance to next step, next block, or set status=ended
-  // nextStep increments state_version, making this idempotent
-  const updatedSession = await nextStep(sessionId)
+  // Import nextBlock for block mode advancement
+  const { nextBlock, nextStep } = await import('./session-operations')
+
+  // Time to advance
+  let updatedSession: SessionState | null = null
+  if (advanceToNextBlock) {
+    // Advance to next block
+    const templateSnapshot = currentSession.template_snapshot as TemplateSnapshot
+    const nextBlockIndex = currentSession.current_block_index + 1
+    
+    if (nextBlockIndex >= templateSnapshot.blocks.length) {
+      // Last block - set status to ended
+      const { data, error } = await supabase
+        .from('sessions')
+        .update({
+          status: SessionStatus.ENDED,
+          step_end_time: null,
+          block_end_time: null,
+          remaining_ms: null,
+          state_version: currentSession.state_version + 1,
+        })
+        .eq('id', sessionId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error ending session:', error)
+        return null
+      }
+
+      updatedSession = dbToSessionState(data)
+    } else {
+      updatedSession = await nextBlock(sessionId)
+    }
+  } else {
+    // Advance to next step (follow_steps mode)
+    updatedSession = await nextStep(sessionId)
+  }
 
   // Debug logging (dev only) when auto-advance actually triggers
   if (updatedSession && process.env.NODE_ENV === 'development') {
     console.log('AUTO_ADVANCE triggered', {
       sessionId,
+      viewMode,
       oldStep: { block: oldBlockIndex, step: oldStepIndex },
       newStep: {
         block: updatedSession.current_block_index,

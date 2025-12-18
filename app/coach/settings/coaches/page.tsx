@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getUserPrimaryGymClient } from '@/lib/auth/get-user-gym-client'
-import { isGymAdminClient } from '@/lib/auth/roles-client'
+// Removed direct Supabase calls - using API endpoints instead
 import { getGymRoles, removeCoach } from '@/lib/user-roles/db-operations'
 import type { UserRoleRecord } from '@/types/user-role'
 import type { Gym } from '@/types/gym'
@@ -41,8 +41,14 @@ export default function CoachesPage() {
       }
 
       setGym(userGym)
-      const admin = await isGymAdminClient(userGym.id)
-      setIsAdmin(admin)
+      // Check if user is gym admin via API
+      const adminResponse = await fetch(`/api/user/gym/${userGym.id}/is-admin`)
+      if (adminResponse.ok) {
+        const adminData = await adminResponse.json()
+        setIsAdmin(adminData.isGymAdmin || false)
+      } else {
+        setIsAdmin(false)
+      }
 
       if (admin) {
         const roles = await getGymRoles(userGym.id)
