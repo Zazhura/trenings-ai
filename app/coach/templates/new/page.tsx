@@ -567,7 +567,7 @@ export default function NewTemplatePage() {
                     <div className="text-center py-8 text-gray-500">
                       <p>Ingen øvelser funnet</p>
                       <p className="text-xs mt-2">
-                        {searchQuery && `Søk: "${searchQuery}"`}
+                        {searchQuery && `Søk: ${searchQuery}`}
                         {selectedCategory !== 'all' && `Kategori: ${selectedCategory}`}
                       </p>
                     </div>
