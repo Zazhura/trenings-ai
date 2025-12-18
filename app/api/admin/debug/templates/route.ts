@@ -9,6 +9,12 @@ import { isAdmin } from '@/lib/auth/admin'
  */
 export async function GET(request: NextRequest) {
   try {
+    // Prod guard: Only allow in development or when NEXT_PUBLIC_DEBUG is true
+    const isDebugMode = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_DEBUG === 'true'
+    if (!isDebugMode) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
     // Check admin access
     const admin = await isAdmin()
     if (!admin) {
@@ -43,13 +49,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Get templates grouped by gym_id (top 10)
+    type GymGroupRow = { gym_id: string | null; is_demo: boolean }
     const { data: gymGroups, error: gymGroupsError } = await supabase
       .from('templates')
       .select('gym_id, is_demo')
     
     const gymCounts: Record<string, { total: number; demo: number; custom: number }> = {}
     if (gymGroups) {
-      for (const template of gymGroups) {
+      const typedGymGroups: GymGroupRow[] = gymGroups as GymGroupRow[]
+      for (const template of typedGymGroups) {
         const gymId = template.gym_id
         if (!gymId) continue
         
@@ -71,13 +79,15 @@ export async function GET(request: NextRequest) {
     const gymNames: Record<string, { name: string; slug: string }> = {}
     
     if (gymIds.length > 0) {
+      type GymRow = { id: string; name: string; slug: string }
       const { data: gyms, error: gymsError } = await supabase
         .from('gyms')
         .select('id, name, slug')
         .in('id', gymIds)
       
       if (!gymsError && gyms) {
-        for (const gym of gyms) {
+        const typedGyms: GymRow[] = gyms as GymRow[]
+        for (const gym of typedGyms) {
           gymNames[gym.id] = { name: gym.name, slug: gym.slug }
         }
       }
@@ -95,6 +105,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.total - a.total)
 
     // Get latest 20 templates
+    type TemplateRow = { id: string; name: string; gym_id: string | null; is_demo: boolean; created_at: string; created_by: string | null }
     const { data: latestTemplates, error: latestError } = await supabase
       .from('templates')
       .select('id, name, gym_id, is_demo, created_at, created_by')
@@ -106,7 +117,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user emails for created_by IDs
-    const userIds = [...new Set((latestTemplates || [])
+    const typedLatestTemplates: TemplateRow[] = (latestTemplates || []) as TemplateRow[]
+    const userIds = [...new Set(typedLatestTemplates
       .map(t => t.created_by)
       .filter(Boolean) as string[])]
     
@@ -120,16 +132,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const latestFormatted = (latestTemplates || []).map((t: any) => ({
+    const latestFormatted = typedLatestTemplates.map((t) => ({
       id: t.id,
       name: t.name,
       gym_id: t.gym_id,
-      gym_name: gymNames[t.gym_id]?.name || 'Unknown',
-      gym_slug: gymNames[t.gym_id]?.slug || 'unknown',
+      gym_name: t.gym_id ? (gymNames[t.gym_id]?.name || 'Unknown') : 'Unknown',
+      gym_slug: t.gym_id ? (gymNames[t.gym_id]?.slug || 'unknown') : 'unknown',
       is_demo: t.is_demo || false,
       created_at: t.created_at,
       created_by: t.created_by,
-      created_by_email: t.created_by ? userEmails[t.created_by] || 'unknown' : null,
+      created_by_email: t.created_by ? (userEmails[t.created_by] || 'unknown') : null,
     }))
 
     return NextResponse.json({
