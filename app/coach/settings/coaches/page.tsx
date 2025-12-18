@@ -50,7 +50,7 @@ export default function CoachesPage() {
         setIsAdmin(false)
       }
 
-      if (admin) {
+      if (isAdmin) {
         const roles = await getGymRoles(userGym.id)
         setCoaches(roles.filter(r => r.role === 'coach'))
       }

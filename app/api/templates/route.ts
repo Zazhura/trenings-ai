@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const adminClient = getAdminClient()
 
     // Get user's gym ID using admin client
-    const { data: userRoles, error: rolesError } = await adminClient
+    const { data: userRolesData, error: rolesError } = await adminClient
       .from('user_roles')
       .select('gym_id, role')
       .eq('user_id', user.id)
@@ -30,14 +30,18 @@ export async function GET(request: NextRequest) {
       .not('gym_id', 'is', null)
       .limit(1)
 
-    if (rolesError || !userRoles || userRoles.length === 0) {
+    // Cast result to avoid never[] type issue
+    type UserRoleRow = { gym_id?: string; role?: string; [key: string]: unknown }
+    const userRoles = (userRolesData ?? []) as UserRoleRow[]
+
+    if (rolesError || userRoles.length === 0) {
       return NextResponse.json(
         { error: 'User has no gym' },
         { status: 404 }
       )
     }
 
-    const gymId = (userRoles[0] as { gym_id: string; role: string }).gym_id
+    const gymId = userRoles[0]?.gym_id
     if (!gymId) {
       return NextResponse.json(
         { error: 'User has no gym' },
@@ -46,24 +50,31 @@ export async function GET(request: NextRequest) {
     }
 
     // Get global demo templates (gym_id IS NULL, is_demo = true)
-    const { data: demoTemplates, error: demoError } = await adminClient
+    const { data: demoTemplatesData, error: demoError } = await adminClient
       .from('templates')
       .select('*')
       .is('gym_id', null)
       .eq('is_demo', true)
       .order('created_at', { ascending: false })
 
+    // Cast result to avoid never[] type issue
+    type TemplateRow = { id?: string; gym_id?: string | null; name?: string; description?: string | null; blocks?: any; is_demo?: boolean; created_by?: string | null; created_at?: string; updated_at?: string; [key: string]: unknown }
+    const demoTemplates = (demoTemplatesData ?? []) as TemplateRow[]
+
     if (demoError) {
       console.error('[GET /api/templates] Error fetching demo templates:', demoError)
     }
 
     // Get gym-specific custom templates (gym_id = gymId, is_demo = false)
-    const { data: ownTemplates, error: ownError } = await adminClient
+    const { data: ownTemplatesData, error: ownError } = await adminClient
       .from('templates')
       .select('*')
       .eq('gym_id', gymId)
       .eq('is_demo', false)
       .order('created_at', { ascending: false })
+
+    // Cast result to avoid never[] type issue
+    const ownTemplates = (ownTemplatesData ?? []) as TemplateRow[]
 
     if (ownError) {
       console.error('[GET /api/templates] Error fetching own templates:', ownError)
@@ -118,7 +129,7 @@ export async function POST(request: NextRequest) {
     const adminClient = getAdminClient()
 
     // Get user's gym ID using admin client
-    const { data: userRoles, error: rolesError } = await adminClient
+    const { data: userRolesData, error: rolesError } = await adminClient
       .from('user_roles')
       .select('gym_id, role')
       .eq('user_id', user.id)
@@ -126,14 +137,18 @@ export async function POST(request: NextRequest) {
       .not('gym_id', 'is', null)
       .limit(1)
 
-    if (rolesError || !userRoles || userRoles.length === 0) {
+    // Cast result to avoid never[] type issue
+    type UserRoleRow = { gym_id?: string; role?: string; [key: string]: unknown }
+    const userRoles = (userRolesData ?? []) as UserRoleRow[]
+
+    if (rolesError || userRoles.length === 0) {
       return NextResponse.json(
         { error: 'User has no gym' },
         { status: 404 }
       )
     }
 
-    const gymId = (userRoles[0] as { gym_id: string; role: string }).gym_id
+    const gymId = userRoles[0]?.gym_id
     if (!gymId) {
       return NextResponse.json(
         { error: 'User has no gym' },
@@ -159,19 +174,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Build insert payload with explicit type
+    const insertPayload: Record<string, unknown> = {
+      gym_id: gymId,
+      name: name.trim(),
+      description: description?.trim() || null,
+      blocks: blocks as any, // JSONB
+      is_demo: false,
+      created_by: user.id,
+    }
+
     // Use admin client to insert template
-    const { data: template, error: insertError } = await adminClient
-      .from('templates')
-      .insert({
-        gym_id: gymId,
-        name: name.trim(),
-        description: description?.trim() || null,
-        blocks: blocks as any, // JSONB
-        is_demo: false,
-        created_by: user.id,
-      })
+    const { data: templateData, error: insertError } = await (adminClient
+      .from('templates') as any)
+      .insert(insertPayload)
       .select()
       .single()
+
+    // Cast result to avoid never type issue
+    type TemplateResult = { id?: string; gym_id?: string | null; name?: string; description?: string | null; blocks?: any; is_demo?: boolean; created_by?: string | null; created_at?: string; updated_at?: string; [key: string]: unknown }
+    const template = (templateData ?? {}) as TemplateResult
 
     if (insertError) {
       console.error('[POST /api/templates] Error creating template:', insertError)

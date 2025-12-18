@@ -51,8 +51,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch exercises' }, { status: 500 })
     }
 
+    // Cast result to avoid never[] type issue
+    type ExerciseRow = { id?: string; name?: string; aliases?: string[]; category?: string | null; equipment?: string[] | string | null; description?: string | null; video_url?: string | null; media_svg_url?: string | null; status?: string; motion_asset_url?: string | null; video_asset_url?: string | null; poster_url?: string | null; created_at?: string; updated_at?: string | null; [key: string]: unknown }
+    const exerciseRows = (data ?? []) as ExerciseRow[]
+
     // Map database rows to Exercise type
-    const exercises = (data || []).map((row: any) => ({
+    const exercises = exerciseRows.map((row) => ({
       id: row.id,
       name: row.name,
       aliases: row.aliases || [],

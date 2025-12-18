@@ -38,13 +38,17 @@ export async function POST(
     }
 
     // Get existing gym_exercises to count what will be updated vs inserted
-    const { data: existingGymExercises } = await supabase
+    const { data: existingGymExercisesData } = await supabase
       .from('gym_exercises')
       .select('exercise_id, is_enabled')
       .eq('gym_id', params.gymId)
 
+    // Cast result to avoid never[] type issue
+    type GymExerciseRow = { exercise_id?: string; is_enabled?: boolean; [key: string]: unknown }
+    const existingGymExercises = (existingGymExercisesData ?? []) as GymExerciseRow[]
+
     const existingMap = new Map(
-      (existingGymExercises || []).map((ge: any) => [ge.exercise_id, ge.is_enabled])
+      existingGymExercises.map((ge) => [ge.exercise_id, ge.is_enabled])
     )
 
     let inserted = 0

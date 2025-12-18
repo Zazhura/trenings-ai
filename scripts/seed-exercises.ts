@@ -180,11 +180,15 @@ async function seedExercises() {
   for (const exercise of exercises) {
     try {
       // Check if exercise already exists
-      const { data: existing } = await supabase
+      const { data: existingData } = await supabase
         .from('exercises')
         .select('id')
         .eq('name', exercise.name)
         .single()
+
+      // Cast result to avoid never type issue
+      type ExerciseResult = { id?: string; [key: string]: unknown }
+      const existing = (existingData ?? null) as ExerciseResult | null
 
       if (existing) {
         console.log(`⏭️  Skipped: ${exercise.name} (already exists)`)
@@ -192,17 +196,20 @@ async function seedExercises() {
         continue
       }
 
+      // Build insert payload with explicit type
+      const insertPayload: Record<string, unknown> = {
+        name: exercise.name,
+        aliases: exercise.aliases,
+        category: exercise.category || null,
+        equipment: exercise.equipment,
+        description: exercise.description || null,
+        status: 'active',
+      }
+
       // Insert exercise
-      const { data, error } = await supabase
-        .from('exercises')
-        .insert({
-          name: exercise.name,
-          aliases: exercise.aliases,
-          category: exercise.category || null,
-          equipment: exercise.equipment,
-          description: exercise.description || null,
-          status: 'active',
-        })
+      const { data, error } = await (supabase
+        .from('exercises') as any)
+        .insert(insertPayload)
         .select()
         .single()
 

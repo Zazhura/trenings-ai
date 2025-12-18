@@ -503,7 +503,7 @@ export function TemplateEditor({ blocks, onChange }: TemplateEditorProps) {
                           <div className="flex gap-2">
                             <Input
                               type="text"
-                              value={formatDuration(step.duration)}
+                              value={formatDuration(step.duration ?? 0)}
                               onChange={(e) => {
                                 const duration = parseDuration(e.target.value)
                                 if (!isNaN(duration) && duration > 0) {

@@ -72,6 +72,9 @@ console.log('')
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+// Type definitions for database rows
+type GymRow = { id?: string; slug?: string; name?: string; [key: string]: unknown }
+
 /**
  * Find exercise by name (checks name and aliases)
  */
@@ -89,24 +92,28 @@ async function findExerciseByName(name: string): Promise<string | null> {
     return null
   }
 
-  for (const exercise of data || []) {
-    if (exercise.name.toLowerCase() === normalizedName) {
-      return exercise.id
+  // Cast result to avoid never[] type issue
+  type ExerciseRow = { id?: string; name?: string; aliases?: string[]; [key: string]: unknown }
+  const exerciseRows = (data ?? []) as ExerciseRow[]
+
+  for (const exercise of exerciseRows) {
+    if (exercise.name && exercise.name.toLowerCase() === normalizedName) {
+      return exercise.id ?? null
     }
     if (exercise.aliases && Array.isArray(exercise.aliases)) {
       for (const alias of exercise.aliases) {
         if (alias.toLowerCase() === normalizedName) {
-          return exercise.id
+          return exercise.id ?? null
         }
       }
     }
   }
 
   // Try partial match
-  for (const exercise of data || []) {
-    if (exercise.name.toLowerCase().includes(normalizedName) || 
-        normalizedName.includes(exercise.name.toLowerCase())) {
-      return exercise.id
+  for (const exercise of exerciseRows) {
+    if (exercise.name && (exercise.name.toLowerCase().includes(normalizedName) || 
+        normalizedName.includes(exercise.name.toLowerCase()))) {
+      return exercise.id ?? null
     }
   }
 
@@ -123,47 +130,57 @@ async function getOrCreateGym(): Promise<{ id: string; slug: string; name: strin
   const name = 'CrossFit Larvik'
 
   // Try to find existing gym by slug
-  const { data: existingBySlug, error: findError } = await supabase
+  const { data: existingBySlugData, error: findError } = await supabase
     .from('gyms')
     .select('id, slug, name')
     .eq('slug', slug)
     .single()
 
+  // Cast result to avoid never type issue
+  const existingBySlug = (existingBySlugData ?? null) as GymRow | null
+
   if (existingBySlug && !findError) {
     console.log(`✓ Found existing gym by slug: ${existingBySlug.name} (id: ${existingBySlug.id}, slug: ${existingBySlug.slug})`)
     return {
-      id: existingBySlug.id,
-      slug: existingBySlug.slug,
-      name: existingBySlug.name,
+      id: existingBySlug.id || '',
+      slug: existingBySlug.slug || '',
+      name: existingBySlug.name || '',
     }
   }
 
   // Try to find by name (case-insensitive)
-  const { data: existingByName, error: findByNameError } = await supabase
+  const { data: existingByNameData, error: findByNameError } = await supabase
     .from('gyms')
     .select('id, slug, name')
     .ilike('name', name)
     .single()
 
+  const existingByName = (existingByNameData ?? null) as GymRow | null
+
   if (existingByName && !findByNameError) {
     console.log(`✓ Found existing gym by name: ${existingByName.name} (id: ${existingByName.id}, slug: ${existingByName.slug})`)
     console.log(`⚠️  Note: Slug mismatch! Expected: ${slug}, Found: ${existingByName.slug}`)
     return {
-      id: existingByName.id,
-      slug: existingByName.slug,
-      name: existingByName.name,
+      id: existingByName.id || '',
+      slug: existingByName.slug || '',
+      name: existingByName.name || '',
     }
   }
 
+  // Build insert payload with explicit type
+  const insertPayload: Record<string, unknown> = {
+    slug,
+    name,
+  }
+
   // Create gym if not found
-  const { data: newGym, error: createError } = await supabase
-    .from('gyms')
-    .insert({
-      slug,
-      name,
-    })
+  const { data: newGymData, error: createError } = await (supabase
+    .from('gyms') as any)
+    .insert(insertPayload)
     .select('id, slug, name')
     .single()
+
+  const newGym = (newGymData ?? null) as GymRow | null
 
   if (createError || !newGym) {
     console.error(`❌ Error creating gym:`, createError)
@@ -176,9 +193,9 @@ async function getOrCreateGym(): Promise<{ id: string; slug: string; name: strin
 
   console.log(`✅ Created gym: ${newGym.name} (id: ${newGym.id}, slug: ${newGym.slug})`)
   return {
-    id: newGym.id,
-    slug: newGym.slug,
-    name: newGym.name,
+    id: newGym.id || '',
+    slug: newGym.slug || '',
+    name: newGym.name || '',
   }
 }
 
@@ -193,18 +210,20 @@ async function getTargetGymId(): Promise<string | null> {
   if (seedGymId) {
     console.log(`📋 Using SEED_GYM_ID from environment: ${seedGymId}`)
     // Verify gym exists
-    const { data: gym, error } = await supabase
+    const { data: gymData, error } = await supabase
       .from('gyms')
       .select('id, slug, name')
       .eq('id', seedGymId)
       .single()
+    
+    const gym = (gymData ?? null) as GymRow | null
     
     if (error || !gym) {
       throw new Error(`Gym with ID ${seedGymId} not found: ${error?.message || 'Unknown error'}`)
     }
     
     console.log(`   Found gym: ${gym.name} (slug: ${gym.slug})`)
-    return gym.id
+    return gym.id || null
   }
   
   // Use slug-based lookup
@@ -224,11 +243,13 @@ async function seedDemoTemplates() {
   // But we'll still log gym info if SEED_GYM_ID is set (for reference)
   const seedGymId = process.env.SEED_GYM_ID
   if (seedGymId) {
-    const { data: gymDetails } = await supabase
+    const { data: gymDetailsData } = await supabase
       .from('gyms')
       .select('id, slug, name')
       .eq('id', seedGymId)
       .single()
+    
+    const gymDetails = (gymDetailsData ?? null) as GymRow | null
     
     if (gymDetails) {
       console.log(`\n📋 Reference gym (for logging only, templates are global):`)
@@ -240,7 +261,7 @@ async function seedDemoTemplates() {
   
   // List all gyms for debugging
   console.log(`\n🔍 Listing all gyms in database:`)
-  const { data: allGyms, error: listGymsError } = await supabase
+  const { data: allGymsData, error: listGymsError } = await supabase
     .from('gyms')
     .select('id, slug, name')
     .order('name')
@@ -248,7 +269,8 @@ async function seedDemoTemplates() {
   if (listGymsError) {
     console.warn(`   ⚠️  Could not list gyms: ${listGymsError.message}`)
   } else {
-    (allGyms || []).forEach((g: any) => {
+    const allGyms = (allGymsData ?? []) as GymRow[]
+    allGyms.forEach((g) => {
       console.log(`   ${g.name} (id: ${g.id}, slug: ${g.slug})`)
     })
   }
@@ -465,13 +487,17 @@ async function seedDemoTemplates() {
     try {
       // Idempotent upsert: Use (is_demo=true, name) as unique key
       // First check if exists
-      const { data: existing, error: checkError } = await supabase
+      const { data: existingData, error: checkError } = await supabase
         .from('templates')
         .select('id, name, gym_id, is_demo')
         .is('gym_id', null)
         .eq('name', template.name)
         .eq('is_demo', true)
         .maybeSingle()
+
+      // Cast result to avoid never type issue
+      type TemplateRow = { id?: string; name?: string; gym_id?: string | null; is_demo?: boolean; [key: string]: unknown }
+      const existing = (existingData ?? null) as TemplateRow | null
 
       if (checkError && checkError.code !== 'PGRST116') {
         // PGRST116 = no rows found, which is OK
@@ -483,17 +509,22 @@ async function seedDemoTemplates() {
         // Template exists - update it to ensure it's correct
         console.log(`🔄 Updating existing template: ${template.name} (id: ${existing.id})`)
         
-        const { data: updated, error: updateError } = await supabase
-          .from('templates')
-          .update({
-            gym_id: null, // Ensure it's global
-            description: template.description,
-            blocks: template.blocks as any, // JSONB
-            is_demo: true,
-          })
+        // Build update payload with explicit type
+        const updatePayload: Record<string, unknown> = {
+          gym_id: null, // Ensure it's global
+          description: template.description,
+          blocks: template.blocks as any, // JSONB
+          is_demo: true,
+        }
+        
+        const { data: updatedData, error: updateError } = await (supabase
+          .from('templates') as any)
+          .update(updatePayload)
           .eq('id', existing.id)
           .select('id, name, gym_id, is_demo')
           .single()
+
+        const updated = (updatedData ?? null) as TemplateRow | null
 
         if (updateError) {
           console.error(`❌ Error updating ${template.name}:`, updateError.message)
@@ -509,17 +540,22 @@ async function seedDemoTemplates() {
         // Template doesn't exist - insert it
         console.log(`➕ Inserting new template: ${template.name}`)
         
-        const { data: inserted, error: insertError } = await supabase
-          .from('templates')
-          .insert({
-            gym_id: null, // Global demo templates - visible to all gyms
-            name: template.name,
-            description: template.description,
-            blocks: template.blocks as any, // JSONB
-            is_demo: true,
-          })
+        // Build insert payload with explicit type
+        const insertPayload: Record<string, unknown> = {
+          gym_id: null, // Global demo templates - visible to all gyms
+          name: template.name,
+          description: template.description,
+          blocks: template.blocks as any, // JSONB
+          is_demo: true,
+        }
+        
+        const { data: insertedData, error: insertError } = await (supabase
+          .from('templates') as any)
+          .insert(insertPayload)
           .select('id, name, gym_id, is_demo')
           .single()
+
+        const inserted = (insertedData ?? null) as TemplateRow | null
 
         if (insertError) {
           console.error(`❌ Error inserting ${template.name}:`, insertError.message)

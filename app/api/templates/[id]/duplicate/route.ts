@@ -28,7 +28,7 @@ export async function POST(
 
     // Get user's gym ID using admin client
     const adminClient = getAdminClient()
-    const { data: userRoles, error: rolesError } = await adminClient
+    const { data: userRolesData, error: rolesError } = await adminClient
       .from('user_roles')
       .select('gym_id, role')
       .eq('user_id', user.id)
@@ -36,14 +36,18 @@ export async function POST(
       .not('gym_id', 'is', null)
       .limit(1)
 
-    if (rolesError || !userRoles || userRoles.length === 0) {
+    // Cast result to avoid never[] type issue
+    type UserRoleRow = { gym_id?: string | null; role?: string; [key: string]: unknown }
+    const userRoles = (userRolesData ?? []) as UserRoleRow[]
+
+    if (rolesError || userRoles.length === 0) {
       return NextResponse.json(
         { error: 'User has no gym' },
         { status: 404 }
       )
     }
 
-    const userGymId = (userRoles[0] as { gym_id: string; role: string }).gym_id
+    const userGymId = userRoles[0]?.gym_id as string | null
     if (!userGymId) {
       return NextResponse.json(
         { error: 'User has no gym' },
@@ -66,23 +70,32 @@ export async function POST(
       )
     }
 
+    // Cast result to avoid never type issue
+    type TemplateRow = { id?: string; name?: string; gym_id?: string | null; description?: string | null; blocks?: unknown; is_demo?: boolean; [key: string]: unknown }
+    const originalTyped = (original ?? {}) as TemplateRow
+
     // Create duplicate with " (kopi)" suffix
-    const newName = `${original.name} (kopi)`
+    const newName = `${originalTyped.name || 'Template'} (kopi)`
+
+    // Build insert payload with explicit type
+    const insertPayload: Record<string, unknown> = {
+      gym_id: userGymId, // Duplicated templates belong to user's gym
+      name: newName,
+      description: originalTyped.description || null,
+      blocks: originalTyped.blocks, // JSONB
+      is_demo: false, // Duplicated templates are not demo
+      created_by: user.id,
+    }
 
     // Insert new template using admin client
     // Duplicated templates always belong to user's gym (not global)
-    const { data: duplicated, error: insertError } = await adminClient
-      .from('templates')
-      .insert({
-        gym_id: userGymId, // Duplicated templates belong to user's gym
-        name: newName,
-        description: original.description || null,
-        blocks: original.blocks, // JSONB
-        is_demo: false, // Duplicated templates are not demo
-        created_by: user.id,
-      })
+    const { data: duplicatedData, error: insertError } = await (adminClient
+      .from('templates') as any)
+      .insert(insertPayload)
       .select()
       .single()
+
+    const duplicated = (duplicatedData ?? null) as TemplateRow | null
 
     if (insertError || !duplicated) {
       console.error('[POST /api/templates/[id]/duplicate] Error duplicating template:', insertError)

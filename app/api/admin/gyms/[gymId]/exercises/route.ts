@@ -44,6 +44,10 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch exercises' }, { status: 500 })
     }
 
+    // Cast exercises result to avoid never[] type issue
+    type ExerciseRow = { id?: string; name?: string; aliases?: string[]; category?: string | null; equipment?: string[] | string | null; description?: string | null; video_url?: string | null; media_svg_url?: string | null; status?: string; motion_asset_url?: string | null; video_asset_url?: string | null; poster_url?: string | null; created_at?: string; updated_at?: string | null; [key: string]: unknown }
+    const exercisesRows = (exercisesData ?? []) as ExerciseRow[]
+
     // Get gym_exercises for this gym
     const { data: gymExercisesData, error: gymExercisesError } = await supabase
       .from('gym_exercises')
@@ -54,13 +58,17 @@ export async function GET(
       console.error('Error fetching gym_exercises:', gymExercisesError)
     }
 
+    // Cast gym_exercises result to avoid never[] type issue
+    type GymExerciseRow = { exercise_id?: string; is_enabled?: boolean; used_count?: number; last_used_at?: string | null; [key: string]: unknown }
+    const gymExercisesRows = (gymExercisesData ?? []) as GymExerciseRow[]
+
     // Create a map of exercise_id -> gym_exercise data
     const gymExercisesMap = new Map(
-      (gymExercisesData || []).map((ge: any) => [ge.exercise_id, ge])
+      gymExercisesRows.map((ge) => [ge.exercise_id, ge])
     )
 
     // Map and filter exercises
-    let exercises = (exercisesData || []).map((row: any) => {
+    let exercises = exercisesRows.map((row) => {
       const gymExercise = gymExercisesMap.get(row.id)
       return {
         id: row.id,
@@ -125,15 +133,18 @@ export async function POST(
 
     const supabase = getAdminClient()
 
+    // Build upsert payload with explicit type
+    const upsertPayload: Record<string, unknown> = {
+      gym_id: params.gymId,
+      exercise_id,
+      is_enabled,
+      updated_at: new Date().toISOString(),
+    }
+
     // Upsert gym_exercise
-    const { data, error } = await supabase
-      .from('gym_exercises')
-      .upsert({
-        gym_id: params.gymId,
-        exercise_id,
-        is_enabled,
-        updated_at: new Date().toISOString(),
-      }, {
+    const { data, error } = await (supabase
+      .from('gym_exercises') as any)
+      .upsert(upsertPayload, {
         onConflict: 'gym_id,exercise_id',
       })
       .select()
@@ -144,12 +155,16 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to update gym exercise' }, { status: 500 })
     }
 
+    // Cast result to avoid never type issue
+    type GymExerciseResult = { gym_id?: string; exercise_id?: string; is_enabled?: boolean; used_count?: number; last_used_at?: string | null; [key: string]: unknown }
+    const result = (data ?? {}) as GymExerciseResult
+
     return NextResponse.json({
-      gym_id: data.gym_id,
-      exercise_id: data.exercise_id,
-      is_enabled: data.is_enabled,
-      used_count: data.used_count,
-      last_used_at: data.last_used_at,
+      gym_id: result.gym_id,
+      exercise_id: result.exercise_id,
+      is_enabled: result.is_enabled,
+      used_count: result.used_count,
+      last_used_at: result.last_used_at,
     })
   } catch (error) {
     console.error('Error in POST /api/admin/gyms/[gymId]/exercises:', error)

@@ -19,7 +19,7 @@ export async function GET(
     const adminClient = getAdminClient()
 
     // Get all user roles for this gym
-    const { data: userRoles, error } = await adminClient
+    const { data: userRolesData, error } = await adminClient
       .from('user_roles')
       .select('user_id, role, created_at')
       .eq('gym_id', params.gymId)
@@ -30,8 +30,12 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
     }
 
+    // Cast result to avoid never[] type issue
+    type UserRoleRow = { user_id?: string; role?: string; created_at?: string; [key: string]: unknown }
+    const userRoles = (userRolesData ?? []) as UserRoleRow[]
+
     // Get user details for each user_id
-    const userIds = userRoles?.map((ur) => ur.user_id) || []
+    const userIds = userRoles.map((ur) => ur.user_id).filter(Boolean) as string[]
     const users = []
 
     if (userIds.length > 0) {
@@ -39,14 +43,14 @@ export async function GET(
       const { data: authUsers, error: authError } = await adminClient.auth.admin.listUsers()
 
       if (!authError && authUsers?.users) {
-        for (const userRole of userRoles || []) {
+        for (const userRole of userRoles) {
           const authUser = authUsers.users.find((u) => u.id === userRole.user_id)
           if (authUser) {
             users.push({
               id: authUser.id,
               email: authUser.email,
-              role: userRole.role,
-              created_at: userRole.created_at,
+              role: userRole.role || '',
+              created_at: userRole.created_at || '',
             })
           }
         }
@@ -132,19 +136,19 @@ export async function POST(
       return NextResponse.json({ error: 'User not found with that email' }, { status: 404 })
     }
 
+    // Build upsert payload with explicit type
+    const upsertPayload: Record<string, unknown> = {
+      user_id: user.id,
+      gym_id: params.gymId,
+      role: role,
+    }
+
     // Upsert user role
-    const { data, error } = await adminClient
-      .from('user_roles')
-      .upsert(
-        {
-          user_id: user.id,
-          gym_id: params.gymId,
-          role: role,
-        },
-        {
-          onConflict: 'user_id,gym_id,role',
-        }
-      )
+    const { data, error } = await (adminClient
+      .from('user_roles') as any)
+      .upsert(upsertPayload, {
+        onConflict: 'user_id,gym_id,role',
+      })
       .select()
       .single()
 

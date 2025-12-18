@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
+// Type definitions for Supabase results
+type TemplateRow = { id?: string; name?: string; gym_id?: string | null; description?: string | null; blocks?: unknown; is_demo?: boolean; created_by?: string | null; created_at?: string; updated_at?: string; [key: string]: unknown }
+type TemplateCheckRow = { gym_id?: string | null; is_demo?: boolean; [key: string]: unknown }
+type UserRoleRow = { gym_id?: string | null; role?: string; [key: string]: unknown }
+
 /**
  * GET /api/templates/[id]
  * Get a single template by ID
@@ -24,11 +29,14 @@ export async function GET(
     // Use admin client to bypass RLS
     const adminClient = getAdminClient()
 
-    const { data: template, error } = await adminClient
+    const { data: templateData, error } = await adminClient
       .from('templates')
       .select('*')
       .eq('id', templateId)
       .single()
+
+    // Cast result to avoid never type issue
+    const template = (templateData ?? null) as TemplateRow | null
 
     if (error || !template) {
       return NextResponse.json(
@@ -82,11 +90,13 @@ export async function PATCH(
     const adminClient = getAdminClient()
 
     // Check if template exists and user has permission (must be gym-specific, not demo)
-    const { data: existing, error: checkError } = await adminClient
+    const { data: existingData, error: checkError } = await adminClient
       .from('templates')
       .select('gym_id, is_demo')
       .eq('id', templateId)
       .single()
+
+    const existing = (existingData ?? null) as TemplateCheckRow | null
 
     if (checkError || !existing) {
       return NextResponse.json(
@@ -103,7 +113,7 @@ export async function PATCH(
     }
 
     // Get user's gym ID to verify ownership
-    const { data: userRoles, error: rolesError } = await adminClient
+    const { data: userRolesData, error: rolesError } = await adminClient
       .from('user_roles')
       .select('gym_id, role')
       .eq('user_id', user.id)
@@ -111,14 +121,16 @@ export async function PATCH(
       .not('gym_id', 'is', null)
       .limit(1)
 
-    if (rolesError || !userRoles || userRoles.length === 0) {
+    const userRoles = (userRolesData ?? []) as UserRoleRow[]
+
+    if (rolesError || userRoles.length === 0) {
       return NextResponse.json(
         { error: 'User has no gym' },
         { status: 404 }
       )
     }
 
-    const userGymId = (userRoles[0] as { gym_id: string; role: string }).gym_id
+    const userGymId = userRoles[0]?.gym_id as string | null
 
     if (existing.gym_id !== userGymId) {
       return NextResponse.json(
@@ -127,18 +139,20 @@ export async function PATCH(
       )
     }
 
-    // Update template
-    const updateData: any = {}
+    // Build update payload with explicit type
+    const updateData: Record<string, unknown> = {}
     if (name !== undefined) updateData.name = name.trim()
     if (description !== undefined) updateData.description = description?.trim() || null
     if (blocks !== undefined) updateData.blocks = blocks
 
-    const { data: updated, error: updateError } = await adminClient
-      .from('templates')
+    const { data: updatedData, error: updateError } = await (adminClient
+      .from('templates') as any)
       .update(updateData)
       .eq('id', templateId)
       .select()
       .single()
+
+    const updated = (updatedData ?? null) as TemplateRow | null
 
     if (updateError || !updated) {
       console.error('[PATCH /api/templates/[id]] Error updating template:', updateError)
@@ -192,11 +206,13 @@ export async function DELETE(
     const adminClient = getAdminClient()
 
     // Check if template exists and user has permission
-    const { data: existing, error: checkError } = await adminClient
+    const { data: existingData, error: checkError } = await adminClient
       .from('templates')
       .select('gym_id, is_demo')
       .eq('id', templateId)
       .single()
+
+    const existing = (existingData ?? null) as TemplateCheckRow | null
 
     if (checkError || !existing) {
       return NextResponse.json(
@@ -213,7 +229,7 @@ export async function DELETE(
     }
 
     // Get user's gym ID to verify ownership
-    const { data: userRoles, error: rolesError } = await adminClient
+    const { data: userRolesData, error: rolesError } = await adminClient
       .from('user_roles')
       .select('gym_id, role')
       .eq('user_id', user.id)
@@ -221,14 +237,16 @@ export async function DELETE(
       .not('gym_id', 'is', null)
       .limit(1)
 
-    if (rolesError || !userRoles || userRoles.length === 0) {
+    const userRoles = (userRolesData ?? []) as UserRoleRow[]
+
+    if (rolesError || userRoles.length === 0) {
       return NextResponse.json(
         { error: 'User has no gym' },
         { status: 404 }
       )
     }
 
-    const userGymId = (userRoles[0] as { gym_id: string; role: string }).gym_id
+    const userGymId = userRoles[0]?.gym_id as string | null
 
     if (existing.gym_id !== userGymId) {
       return NextResponse.json(

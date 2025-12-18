@@ -168,7 +168,7 @@ export function DisplayContent({ session, debugMode = false }: DisplayContentPro
             {viewMode === 'strength_sets' && 'STRENGTH SETS'}
           </div>
           {/* EMOM Minute Indicator */}
-          {blockMode === 'emom' && currentBlock.block_duration_seconds && (
+          {viewMode === 'emom' && currentBlock.block_duration_seconds && (
             <div className="text-2xl sm:text-3xl font-semibold text-gray-400 mt-4">
               Minutt {getCurrentMinute()}/{getTotalMinutes()}
             </div>

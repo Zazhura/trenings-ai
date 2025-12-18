@@ -321,7 +321,7 @@ export async function nextStep(sessionId: string): Promise<SessionState | null> 
     state_version: currentSession.state_version + 1,
   }
 
-  if (isTimedStep && stepDuration !== null) {
+  if (isTimedStep && stepDuration !== null && stepDuration !== undefined) {
     // Timed step: set timer
     if (isRunning) {
       // Start immediately with full duration
@@ -430,7 +430,7 @@ export async function prevStep(sessionId: string): Promise<SessionState | null> 
     state_version: currentSession.state_version + 1,
   }
 
-  if (isTimedStep && stepDuration !== null) {
+  if (isTimedStep && stepDuration !== null && stepDuration !== undefined) {
     // Timed step: set timer
     if (isRunning) {
       // Start immediately with full duration

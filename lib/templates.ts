@@ -271,7 +271,6 @@ export function createTemplateSnapshot(template: Template): TemplateSnapshot {
         mediaUrl: step.mediaUrl ?? undefined, // @deprecated - backward compatibility
         step_kind: step.step_kind ?? 'note', // Default to note
         reps: step.reps ?? undefined, // For reps kind
-        description: step.description ?? undefined, // Optional description
       })),
     })),
   }
