@@ -37,19 +37,31 @@ export async function GET(request: NextRequest) {
     type UserRoleRow = { gym_id?: string; role?: string; [key: string]: unknown }
     const userRoles = (userRolesData ?? []) as UserRoleRow[]
 
-    if (rolesError || userRoles.length === 0) {
+    // Handle database errors gracefully
+    if (rolesError) {
+      console.error('[GET /api/templates] Error fetching user roles:', rolesError)
       return NextResponse.json(
-        { error: 'User has no gym' },
-        { status: 404 }
+        { error: 'Failed to fetch user gym information' },
+        { status: 500 }
       )
     }
 
+    // Handle missing gym gracefully - return empty arrays instead of error
+    if (userRoles.length === 0) {
+      return NextResponse.json({
+        demo: [],
+        own: [],
+        all: [],
+      })
+    }
+
     const gymId = userRoles[0]?.gym_id
-    if (!gymId) {
-      return NextResponse.json(
-        { error: 'User has no gym' },
-        { status: 404 }
-      )
+    if (!gymId || typeof gymId !== 'string') {
+      return NextResponse.json({
+        demo: [],
+        own: [],
+        all: [],
+      })
     }
 
     // Get global demo templates (gym_id IS NULL, is_demo = true)
@@ -66,6 +78,7 @@ export async function GET(request: NextRequest) {
 
     if (demoError) {
       console.error('[GET /api/templates] Error fetching demo templates:', demoError)
+      // Continue with empty array instead of failing
     }
 
     // Get gym-specific custom templates (gym_id = gymId, is_demo = false)
@@ -81,23 +94,42 @@ export async function GET(request: NextRequest) {
 
     if (ownError) {
       console.error('[GET /api/templates] Error fetching own templates:', ownError)
+      // Continue with empty array instead of failing
     }
 
-    // Map to DatabaseTemplate format
-    const mapToTemplate = (row: any): DatabaseTemplate => ({
-      id: row.id,
-      gym_id: row.gym_id || undefined,
-      name: row.name,
-      description: row.description || undefined,
-      is_demo: row.is_demo || false,
-      blocks: row.blocks as Block[],
-      created_by: row.created_by || undefined,
-      created_at: new Date(row.created_at),
-      updated_at: new Date(row.updated_at),
-    })
+    // Map to DatabaseTemplate format - defensively handle missing/null fields
+    const mapToTemplate = (row: any): DatabaseTemplate | null => {
+      try {
+        // Validate required fields
+        if (!row.id || !row.name) {
+          console.warn('[GET /api/templates] Skipping template with missing id or name:', row)
+          return null
+        }
 
-    const demo = (demoTemplates || []).map(mapToTemplate)
-    const own = (ownTemplates || []).map(mapToTemplate)
+        return {
+          id: row.id,
+          gym_id: row.gym_id || undefined,
+          name: row.name,
+          description: row.description || undefined,
+          is_demo: row.is_demo || false,
+          blocks: Array.isArray(row.blocks) ? (row.blocks as Block[]) : [],
+          created_by: row.created_by || undefined,
+          created_at: row.created_at ? new Date(row.created_at) : new Date(),
+          updated_at: row.updated_at ? new Date(row.updated_at) : new Date(),
+        }
+      } catch (error) {
+        console.error('[GET /api/templates] Error mapping template:', error, row)
+        return null
+      }
+    }
+
+    // Map templates and filter out nulls
+    const demo = (demoTemplates || [])
+      .map(mapToTemplate)
+      .filter((t): t is DatabaseTemplate => t !== null)
+    const own = (ownTemplates || [])
+      .map(mapToTemplate)
+      .filter((t): t is DatabaseTemplate => t !== null)
     const all = [...demo, ...own]
 
     return NextResponse.json({
