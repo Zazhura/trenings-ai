@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { ensureOwnerCoachMembership } from '@/lib/user-roles/ensure-membership'
 import type { Gym } from '@/types/gym'
 
 export const dynamic = 'force-dynamic'
@@ -43,13 +44,24 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
 
-    if (!userRoles || userRoles.length === 0) {
+    let gymId: string | null = null
+
+    if (userRoles && userRoles.length > 0) {
+      gymId = (userRoles[0] as { gym_id: string; role: string }).gym_id
+    }
+
+    // If no role found, return error (user needs to be assigned to a gym)
+    if (!gymId) {
       return NextResponse.json({ error: 'No gym found for user' }, { status: 404 })
     }
 
-    const gymId = (userRoles[0] as { gym_id: string; role: string }).gym_id
-    if (!gymId) {
-      return NextResponse.json({ error: 'No gym found' }, { status: 404 })
+    // Ensure user has membership (idempotent - only creates if missing)
+    // This handles backfill for existing gyms where user_roles wasn't set up
+    try {
+      await ensureOwnerCoachMembership(user.id, gymId)
+    } catch (error) {
+      // Log but don't fail - membership might already exist or there might be a constraint issue
+      console.warn('[api/user/gym] Failed to ensure membership (non-critical):', error)
     }
 
     // Get gym details using admin client (bypasses RLS)

@@ -26,6 +26,7 @@ export default function CoachesPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [showInviteForm, setShowInviteForm] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -34,6 +35,13 @@ export default function CoachesPage() {
   const loadData = async () => {
     setLoading(true)
     try {
+      // Get current user ID
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setCurrentUserId(user.id)
+      }
+
       const userGym = await getUserPrimaryGymClient()
       if (!userGym) {
         console.error('No gym found')
@@ -52,7 +60,8 @@ export default function CoachesPage() {
 
       if (isAdmin) {
         const roles = await getGymRoles(userGym.id)
-        setCoaches(roles.filter(r => r.role === 'coach'))
+        // Show all coaches and gym_admins (including current user)
+        setCoaches(roles.filter(r => r.role === 'coach' || r.role === 'gym_admin'))
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -106,11 +115,6 @@ export default function CoachesPage() {
     }
   }
 
-  const getUserEmail = async (userId: string): Promise<string> => {
-    const supabase = createClient()
-    const { data } = await supabase.auth.admin.getUserById(userId)
-    return data?.user?.email || 'Ukjent'
-  }
 
   if (loading) {
     return (
@@ -202,24 +206,36 @@ export default function CoachesPage() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {coaches.map((coach) => (
-              <Card key={coach.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Coach</CardTitle>
-                      <CardDescription>User ID: {coach.user_id}</CardDescription>
+            {coaches.map((coach) => {
+              const isCurrentUser = currentUserId === coach.user_id
+              const roleLabel = coach.role === 'gym_admin' ? 'Gym Admin' : 'Coach'
+              
+              return (
+                <Card key={coach.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>
+                          {roleLabel}
+                          {isCurrentUser && ' (Deg)'}
+                        </CardTitle>
+                        <CardDescription>
+                          {isCurrentUser ? 'Din konto' : `User ID: ${coach.user_id.substring(0, 8)}...`}
+                        </CardDescription>
+                      </div>
+                      {coach.role !== 'gym_admin' && (
+                        <Button
+                          variant="outline"
+                          onClick={() => handleRemove(coach.user_id)}
+                        >
+                          Fjern
+                        </Button>
+                      )}
                     </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleRemove(coach.user_id)}
-                    >
-                      Fjern
-                    </Button>
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
+                  </CardHeader>
+                </Card>
+              )
+            })}
           </div>
         )}
       </div>
