@@ -161,7 +161,8 @@ function CoachPageContent() {
         },
         body: JSON.stringify({
           gymSlug,
-          templateSnapshot,
+          templateId: selectedTemplate.id,
+          templateSnapshot, // Keep for backward compatibility, but backend will prefer templateId
         }),
       })
 

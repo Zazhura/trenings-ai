@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { SessionStatus, SessionState, TemplateSnapshot } from '@/types/session'
+import { createTemplateSnapshotFromDb } from '@/lib/templates/db-operations'
+import type { DatabaseTemplate, Block } from '@/types/template'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,22 +45,29 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json()
-    const { gymSlug, templateSnapshot } = body
+    const { gymSlug, templateId, templateSnapshot } = body
 
     console.log('[POST /api/coach/sessions/start] Received request:', {
       gymSlug,
-      templateId: templateSnapshot?.blocks?.[0]?.name || 'unknown',
+      templateId,
       hasTemplateSnapshot: !!templateSnapshot,
     })
 
-    if (!gymSlug || !templateSnapshot) {
+    if (!gymSlug) {
       return NextResponse.json(
-        { error: 'gymSlug and templateSnapshot are required' },
+        { error: 'gymSlug is required' },
         { status: 400 }
       )
     }
 
-    // Resolve gym_id from gym_slug
+    if (!templateId && !templateSnapshot) {
+      return NextResponse.json(
+        { error: 'Either templateId or templateSnapshot is required' },
+        { status: 400 }
+      )
+    }
+
+    // Resolve gym_id from gym_slug first (needed for template lookup)
     const adminClient = getAdminClient()
     const { data: gymData, error: gymError } = await adminClient
       .from('gyms')
@@ -90,15 +99,97 @@ export async function POST(request: NextRequest) {
       gymId,
     })
 
-    // Validate template has blocks
-    if (!templateSnapshot.blocks || templateSnapshot.blocks.length === 0) {
+    // Resolve template_snapshot: either fetch from DB or use provided snapshot
+    let finalTemplateSnapshot: TemplateSnapshot
+
+    if (templateId) {
+      // Fetch template from database and create snapshot
+      console.log('[POST /api/coach/sessions/start] Fetching template from database:', templateId)
+      
+      const { data: templateData, error: templateError } = await adminClient
+        .from('templates')
+        .select('*')
+        .eq('id', templateId)
+        .maybeSingle()
+
+      if (templateError) {
+        console.error('[POST /api/coach/sessions/start] Error fetching template:', templateError)
+        return NextResponse.json(
+          { error: 'Failed to fetch template', details: templateError instanceof Error ? templateError.message : String(templateError) },
+          { status: 500 }
+        )
+      }
+
+      if (!templateData) {
+        return NextResponse.json(
+          { error: `Template not found with id: ${templateId}` },
+          { status: 404 }
+        )
+      }
+
+      // Map database row to DatabaseTemplate
+      type TemplateRow = { id?: string; gym_id?: string | null; name?: string; description?: string | null; blocks?: any; is_demo?: boolean; created_by?: string | null; created_at?: string; updated_at?: string; [key: string]: unknown }
+      const templateRow = templateData as TemplateRow
+      
+      const dbTemplate: DatabaseTemplate = {
+        id: templateRow.id!,
+        gym_id: templateRow.gym_id || undefined,
+        name: templateRow.name!,
+        description: templateRow.description || undefined,
+        is_demo: templateRow.is_demo || false,
+        blocks: Array.isArray(templateRow.blocks) ? (templateRow.blocks as Block[]) : [],
+        created_by: templateRow.created_by || undefined,
+        created_at: new Date(templateRow.created_at!),
+        updated_at: new Date(templateRow.updated_at!),
+      }
+
+      // Validate template has blocks
+      if (!dbTemplate.blocks || dbTemplate.blocks.length === 0) {
+        return NextResponse.json(
+          { error: 'Template must have at least one block' },
+          { status: 400 }
+        )
+      }
+
+      // Create snapshot from database template
+      finalTemplateSnapshot = createTemplateSnapshotFromDb(dbTemplate)
+      
+      console.log('[POST /api/coach/sessions/start] Created snapshot from database template:', {
+        templateId: dbTemplate.id,
+        templateName: dbTemplate.name,
+        blocksCount: finalTemplateSnapshot.blocks.length,
+      })
+    } else if (templateSnapshot) {
+      // Use provided snapshot, but validate it has blocks
+      if (!templateSnapshot.blocks || !Array.isArray(templateSnapshot.blocks) || templateSnapshot.blocks.length === 0) {
+        return NextResponse.json(
+          { error: 'Template snapshot must have at least one block' },
+          { status: 400 }
+        )
+      }
+
+      finalTemplateSnapshot = templateSnapshot as TemplateSnapshot
+      
+      console.log('[POST /api/coach/sessions/start] Using provided template snapshot:', {
+        blocksCount: finalTemplateSnapshot.blocks.length,
+      })
+    } else {
+      // This should never happen due to validation above, but TypeScript needs it
+      return NextResponse.json(
+        { error: 'Either templateId or templateSnapshot is required' },
+        { status: 400 }
+      )
+    }
+
+    // Validate final template snapshot has blocks (should already be validated above)
+    if (!finalTemplateSnapshot.blocks || finalTemplateSnapshot.blocks.length === 0) {
       return NextResponse.json(
         { error: 'Template must have at least one block' },
         { status: 400 }
       )
     }
 
-    const firstBlock = templateSnapshot.blocks[0]
+    const firstBlock = finalTemplateSnapshot.blocks[0]
     const viewMode = firstBlock.block_mode || 'follow_steps'
     const now = new Date()
 
@@ -157,10 +248,16 @@ export async function POST(request: NextRequest) {
       block_end_time: blockEndTime ? blockEndTime.toISOString() : null,
       remaining_ms: null, // null when running
       state_version: 1,
-      template_snapshot: templateSnapshot,
+      template_snapshot: finalTemplateSnapshot,
     }
 
-    console.log('[POST /api/coach/sessions/start] Inserting session with gym_slug:', gymSlug)
+    console.log('[POST /api/coach/sessions/start] Inserting session with template snapshot:', {
+      gymSlug: resolvedGymSlug,
+      gymId,
+      blocksCount: finalTemplateSnapshot.blocks.length,
+      firstBlockName: finalTemplateSnapshot.blocks[0]?.name,
+    })
+
 
     const { data, error } = await (adminClient
       .from('sessions') as any)
