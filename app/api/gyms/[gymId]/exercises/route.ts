@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import type { Exercise, ExerciseStatus } from '@/types/exercise'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/gyms/[gymId]/exercises
  * Get enabled exercises for a gym - Coach/Gym Admin only

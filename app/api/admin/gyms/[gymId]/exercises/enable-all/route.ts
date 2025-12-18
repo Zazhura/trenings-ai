@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/admin/gyms/[gymId]/exercises/enable-all
  * Enable all exercises for a gym - Admin only

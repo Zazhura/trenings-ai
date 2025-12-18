@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/gyms/[gymId]/exercises/[exerciseId]/use
  * Mark an exercise as used by a gym

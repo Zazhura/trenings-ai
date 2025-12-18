@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/user/roles
  * Get user roles - Authenticated users only

@@ -3,6 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import type { DatabaseTemplate, Block } from '@/types/template'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 /**
  * GET /api/templates
  * Get templates for authenticated user's gym

@@ -3,6 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import type { Gym } from '@/types/gym'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 /**
  * GET /api/user/gym
  * Get user's primary gym - Authenticated users only

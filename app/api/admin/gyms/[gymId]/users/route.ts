@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { getAdminClient } from '@/lib/supabase/admin'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/admin/gyms/[gymId]/users
  * Get all users assigned to a gym

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // Type definitions for Supabase results
 type TemplateRow = { id?: string; name?: string; gym_id?: string | null; description?: string | null; blocks?: unknown; is_demo?: boolean; created_by?: string | null; created_at?: string; updated_at?: string; [key: string]: unknown }
 type TemplateCheckRow = { gym_id?: string | null; is_demo?: boolean; [key: string]: unknown }

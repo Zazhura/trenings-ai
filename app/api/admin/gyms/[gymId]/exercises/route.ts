@@ -3,6 +3,8 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import type { Exercise, ExerciseStatus } from '@/types/exercise'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/admin/gyms/[gymId]/exercises
  * Get exercises for a gym with enable/disable status and usage stats - Admin only

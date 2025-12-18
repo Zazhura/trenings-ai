@@ -3,6 +3,8 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import type { Gym } from '@/types/gym'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/admin/gyms
  * Get all gyms - Admin only

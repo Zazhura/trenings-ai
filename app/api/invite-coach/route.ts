@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { inviteCoach } from '@/lib/user-roles/db-operations'
 import { isGymAdmin } from '@/lib/auth/roles'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()

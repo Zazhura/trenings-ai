@@ -8,6 +8,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
