@@ -78,8 +78,8 @@ export default function GymExercisesPage() {
 
       // Filter most used exercises (sorted by used_count desc)
       const mostUsed = data
-        .filter((e: GymExercise) => e.used_count_in_gym > 0)
-        .sort((a: GymExercise, b: GymExercise) => b.used_count_in_gym - a.used_count_in_gym)
+        .filter((e: GymExercise) => (e.used_count_in_gym ?? 0) > 0)
+        .sort((a: GymExercise, b: GymExercise) => (b.used_count_in_gym ?? 0) - (a.used_count_in_gym ?? 0))
         .slice(0, 20) // Top 20
       setMostUsedExercises(mostUsed)
     } catch (error) {
@@ -309,7 +309,7 @@ export default function GymExercisesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => toggleExercise(exercise.id, exercise.is_enabled_in_gym)}
+                      onClick={() => toggleExercise(exercise.id, exercise.is_enabled_in_gym ?? null)}
                     >
                       Deaktiver
                     </Button>
@@ -343,7 +343,7 @@ export default function GymExercisesPage() {
                     <div>
                       <div className="font-medium">{exercise.name}</div>
                       <div className="text-sm text-gray-600">
-                        Brukt {exercise.used_count_in_gym} gang{exercise.used_count_in_gym !== 1 ? 'er' : ''}
+                        Brukt {exercise.used_count_in_gym ?? 0} gang{(exercise.used_count_in_gym ?? 0) !== 1 ? 'er' : ''}
                       </div>
                     </div>
                     <Badge variant={exercise.is_enabled_in_gym ? 'default' : 'secondary'}>
@@ -397,7 +397,7 @@ export default function GymExercisesPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => toggleExercise(exercise.id, exercise.is_enabled_in_gym)}
+                          onClick={() => toggleExercise(exercise.id, exercise.is_enabled_in_gym ?? null)}
                         >
                           {exercise.is_enabled_in_gym ? 'Deaktiver' : 'Aktiver'}
                         </Button>
