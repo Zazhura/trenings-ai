@@ -46,21 +46,37 @@ export async function GET(
     }
 
     // Check if service role key is configured before calling getAdminClient()
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!serviceRoleKey) {
-      console.error('[current-session] Missing SUPABASE_SERVICE_ROLE_KEY environment variable')
+    // Try primary key first, then fallback
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_SUPABASE_SERVICE_ROLE_KEY
+    const serviceKeyPresent = !!serviceRoleKey
+    const usingServiceRole = serviceKeyPresent
+    
+    if (!serviceKeyPresent) {
+      console.error('[current-session] Missing SUPABASE_SERVICE_ROLE_KEY and NEXT_SUPABASE_SERVICE_ROLE_KEY environment variables')
       return NextResponse.json(
-        { error: 'Missing SUPABASE_SERVICE_ROLE_KEY - server configuration error' },
+        { 
+          error: 'Missing SUPABASE_SERVICE_ROLE_KEY - server configuration error',
+          debug: {
+            serviceKeyPresent: false,
+            usingServiceRole: false,
+            supabaseUrlHost: process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : null,
+          }
+        },
         { status: 500 }
       )
     }
 
     const supabase = getAdminClient()
+    const supabaseUrlHost = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : null
 
     const nowIso = new Date().toISOString()
     const expectedStatuses = ['running', 'paused']
 
-    console.log('[GET /api/display/[gymSlug]/current-session] Querying for gym_slug:', gymSlug)
+    console.log('[GET /api/display/[gymSlug]/current-session] Querying for gym_slug:', gymSlug, {
+      serviceKeyPresent,
+      usingServiceRole,
+      supabaseUrlHost,
+    })
 
     // Resolve gym_id from gym_slug
     type GymRow = { id?: string; slug?: string; [key: string]: unknown }
@@ -77,6 +93,9 @@ export async function GET(
       gymSlug,
       gymId,
       gymSlugFromDb: gym?.slug,
+      serviceKeyPresent,
+      usingServiceRole,
+      supabaseUrlHost,
     })
 
     // Debug: Get latest session for this gym (without status filter) to see what exists
@@ -98,6 +117,20 @@ export async function GET(
     const { data: latestSessionData, error: latestError } = await latestQuery.maybeSingle()
     
     const latestSession = latestSessionData ? (latestSessionData as LatestSessionRow) : null
+
+    // Debug: Verify admin client can see sessions (count all sessions for this gym)
+    if (gymId) {
+      const { count: totalSessionsCount } = await supabase
+        .from('sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('gym_id', gymId)
+      
+      console.log('[GET /api/display/[gymSlug]/current-session] Admin client verification:', {
+        gymId,
+        totalSessionsCount,
+        usingServiceRole,
+      })
+    }
 
     // Get most recent running/paused session for this gym
     // Try gym_id first, fallback to gym_slug
@@ -122,7 +155,9 @@ export async function GET(
         { 
           error: 'Failed to fetch session',
           debug: {
-            gymSlug,
+            serviceKeyPresent,
+            usingServiceRole,
+            supabaseUrlHost,
             gymId: gymId || null,
             nowIso,
             expectedStatuses,
@@ -154,7 +189,9 @@ export async function GET(
       return NextResponse.json({
         session: null,
         debug: {
-          gymSlug,
+          serviceKeyPresent,
+          usingServiceRole,
+          supabaseUrlHost,
           gymId: gymId || null,
           nowIso,
           expectedStatuses,
@@ -180,7 +217,9 @@ export async function GET(
     return NextResponse.json({
       session: sessionState,
       debug: {
-        gymSlug,
+        serviceKeyPresent,
+        usingServiceRole,
+        supabaseUrlHost,
         gymId: gymId || null,
         nowIso,
         expectedStatuses,
