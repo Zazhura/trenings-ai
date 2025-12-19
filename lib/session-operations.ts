@@ -32,12 +32,19 @@ export async function startSession(
     currentStepIndex = 0
     const firstStep = firstBlock.steps[0]
     
-    // Check if step is timed (step_kind == 'time' and duration exists)
+    // Check if step is timed (step_kind == 'time' and duration exists and is valid)
     const stepKind = firstStep.step_kind || 'note'
-    if (stepKind === 'time' && firstStep.duration && firstStep.duration > 0) {
-      stepEndTime = new Date(now.getTime() + firstStep.duration)
+    const stepDuration = firstStep.duration
+    // Robust check: ensure duration is a valid number > 0 (not NaN, null, undefined, or <= 0)
+    const isValidDuration = typeof stepDuration === 'number' && 
+                            !isNaN(stepDuration) && 
+                            isFinite(stepDuration) && 
+                            stepDuration > 0
+    
+    if (stepKind === 'time' && isValidDuration) {
+      stepEndTime = new Date(now.getTime() + stepDuration)
     }
-    // else: stepEndTime remains null (untimed step)
+    // else: stepEndTime remains null (untimed step - no auto-advance, manual Next Step/Block only)
   } else {
     // Block modes (amrap/emom/for_time/strength_sets): no step index
     currentStepIndex = null
@@ -100,6 +107,7 @@ export async function pauseSession(sessionId: string): Promise<SessionState | nu
   }
 
   // Calculate remaining_ms from active timer (step_end_time or block_end_time)
+  // For untimed steps/blocks, remainingMs should be null (not 0)
   const now = new Date()
   const stepEndTime = currentSession.step_end_time
     ? new Date(currentSession.step_end_time)
@@ -108,12 +116,21 @@ export async function pauseSession(sessionId: string): Promise<SessionState | nu
     ? new Date(currentSession.block_end_time)
     : null
 
-  let remainingMs = 0
+  let remainingMs: number | null = null
   if (stepEndTime) {
-    remainingMs = Math.max(0, stepEndTime.getTime() - now.getTime())
+    const calculated = stepEndTime.getTime() - now.getTime()
+    // Only set if valid (not NaN) and >= 0
+    if (!isNaN(calculated) && isFinite(calculated)) {
+      remainingMs = Math.max(0, calculated)
+    }
   } else if (blockEndTime) {
-    remainingMs = Math.max(0, blockEndTime.getTime() - now.getTime())
+    const calculated = blockEndTime.getTime() - now.getTime()
+    // Only set if valid (not NaN) and >= 0
+    if (!isNaN(calculated) && isFinite(calculated)) {
+      remainingMs = Math.max(0, calculated)
+    }
   }
+  // else: remainingMs remains null (untimed step/block)
 
   // Update session: set status=paused, remaining_ms, remove timers (set to null)
   const { data, error } = await supabase
@@ -307,10 +324,16 @@ export async function nextStep(sessionId: string): Promise<SessionState | null> 
   const nextBlock = templateSnapshot.blocks[newBlockIndex]
   const nextStep = nextBlock.steps[newStepIndex]
   
-  // Determine if next step is timed (only time kind steps with duration)
+  // Determine if next step is timed (only time kind steps with valid duration)
   const stepKind = nextStep.step_kind || 'note'
-  const isTimedStep = stepKind === 'time' && nextStep.duration && nextStep.duration > 0
-  const stepDuration = isTimedStep ? nextStep.duration : null
+  const stepDuration = nextStep.duration
+  // Robust check: ensure duration is a valid number > 0 (not NaN, null, undefined, or <= 0)
+  const isValidDuration = typeof stepDuration === 'number' && 
+                          !isNaN(stepDuration) && 
+                          isFinite(stepDuration) && 
+                          stepDuration > 0
+  const isTimedStep = stepKind === 'time' && isValidDuration
+  const validStepDuration = isTimedStep ? stepDuration : null
 
   const now = new Date()
   const updateData: any = {
@@ -321,19 +344,20 @@ export async function nextStep(sessionId: string): Promise<SessionState | null> 
     state_version: currentSession.state_version + 1,
   }
 
-  if (isTimedStep && stepDuration !== null && stepDuration !== undefined) {
+  if (isTimedStep && validStepDuration !== null && validStepDuration !== undefined) {
     // Timed step: set timer
     if (isRunning) {
       // Start immediately with full duration
-      updateData.step_end_time = new Date(now.getTime() + stepDuration).toISOString()
+      updateData.step_end_time = new Date(now.getTime() + validStepDuration).toISOString()
       updateData.remaining_ms = null
     } else if (isPaused) {
       // Remain paused, set remaining = full duration
       updateData.step_end_time = null
-      updateData.remaining_ms = stepDuration
+      updateData.remaining_ms = validStepDuration
     }
   } else {
-    // Untimed step: no timer
+    // Untimed step: no timer, no auto-advance, allow manual Next Step/Block
+    // Session stays running/paused, user can manually advance
     updateData.step_end_time = null
     updateData.remaining_ms = null
   }
@@ -416,10 +440,16 @@ export async function prevStep(sessionId: string): Promise<SessionState | null> 
   const prevBlock = templateSnapshot.blocks[newBlockIndex]
   const prevStep = prevBlock.steps[newStepIndex]
   
-  // Determine if prev step is timed (only time kind steps with duration)
+  // Determine if prev step is timed (only time kind steps with valid duration)
   const stepKind = prevStep.step_kind || 'note'
-  const isTimedStep = stepKind === 'time' && prevStep.duration && prevStep.duration > 0
-  const stepDuration = isTimedStep ? prevStep.duration : null
+  const stepDuration = prevStep.duration
+  // Robust check: ensure duration is a valid number > 0 (not NaN, null, undefined, or <= 0)
+  const isValidDuration = typeof stepDuration === 'number' && 
+                          !isNaN(stepDuration) && 
+                          isFinite(stepDuration) && 
+                          stepDuration > 0
+  const isTimedStep = stepKind === 'time' && isValidDuration
+  const validStepDuration = isTimedStep ? stepDuration : null
 
   const now = new Date()
   const updateData: any = {
@@ -430,19 +460,20 @@ export async function prevStep(sessionId: string): Promise<SessionState | null> 
     state_version: currentSession.state_version + 1,
   }
 
-  if (isTimedStep && stepDuration !== null && stepDuration !== undefined) {
+  if (isTimedStep && validStepDuration !== null && validStepDuration !== undefined) {
     // Timed step: set timer
     if (isRunning) {
       // Start immediately with full duration
-      updateData.step_end_time = new Date(now.getTime() + stepDuration).toISOString()
+      updateData.step_end_time = new Date(now.getTime() + validStepDuration).toISOString()
       updateData.remaining_ms = null
     } else if (isPaused) {
       // Remain paused, set remaining = full duration
       updateData.step_end_time = null
-      updateData.remaining_ms = stepDuration
+      updateData.remaining_ms = validStepDuration
     }
   } else {
-    // Untimed step: no timer
+    // Untimed step: no timer, no auto-advance, allow manual Next Step/Block
+    // Session stays running/paused, user can manually advance
     updateData.step_end_time = null
     updateData.remaining_ms = null
   }
@@ -721,8 +752,13 @@ export async function prevBlock(sessionId: string): Promise<SessionState | null>
 /**
  * Stop a session
  * Sets status=stopped
+ * @param sessionId - Session ID to stop
+ * @param reason - Optional reason code for logging (e.g., 'USER_STOP', 'INVALID_DURATION', 'END_OF_WORKOUT')
  */
-export async function stopSession(sessionId: string): Promise<SessionState | null> {
+export async function stopSession(
+  sessionId: string, 
+  reason: 'USER_STOP' | 'INVALID_DURATION' | 'END_OF_WORKOUT' | 'UNKNOWN' = 'USER_STOP'
+): Promise<SessionState | null> {
   const supabase = createClient()
   const { data: currentSession, error: fetchError } = await supabase
     .from('sessions')
@@ -734,6 +770,18 @@ export async function stopSession(sessionId: string): Promise<SessionState | nul
     console.error('Error fetching session:', fetchError)
     return null
   }
+
+  // Log stop reason for debugging
+  console.log('[stopSession] Stopping session:', {
+    sessionId,
+    reason,
+    previousStatus: currentSession.status,
+    currentBlockIndex: currentSession.current_block_index,
+    currentStepIndex: currentSession.current_step_index,
+    stepEndTime: currentSession.step_end_time,
+    blockEndTime: currentSession.block_end_time,
+    remainingMs: currentSession.remaining_ms,
+  })
 
   const { data, error } = await supabase
     .from('sessions')
