@@ -224,6 +224,108 @@ Based on this inventory, the following objects **should NOT exist** in productio
 
 ---
 
+## Cleanup Strategy
+
+### Approach: Archive-First, Reversible
+
+The cleanup strategy follows a **conservative, archive-first approach**:
+
+1. **No immediate deletion** - All unused objects are moved to `archive` schema
+2. **Reversible** - Objects can be restored using REVERT section
+3. **Safe operations** - Only schema moves and trigger disabling (no DROP)
+4. **Protected objects** - `sessions` table and related objects are NEVER touched
+
+### Protected Objects (Never Modified)
+
+The following objects are **protected** and will NOT be archived or modified:
+
+- ✅ `sessions` table (and all its columns, indexes)
+- ✅ `update_updated_at_column()` function
+- ✅ `update_sessions_updated_at` trigger
+- ✅ All 5 RLS policies on `sessions` table:
+  - "Authenticated users can read sessions"
+  - "Authenticated users can insert sessions"
+  - "Authenticated users can update sessions"
+  - "Authenticated users can delete sessions"
+  - "Anonymous users can read sessions"
+
+### Objects That Will Be Archived
+
+Any objects in `public` schema that are NOT in the protected list above will be archived:
+
+- Tables (except `sessions`)
+- Functions (except `update_updated_at_column`)
+- Triggers (except `update_sessions_updated_at`) - **disabled**, not deleted
+- Policies (except sessions policies) - **dropped** (can be recreated from migrations)
+- Views (all)
+
+### Cleanup Script Structure
+
+The cleanup script (`scripts/supabase_cleanup.sql`) has three sections:
+
+#### SECTION 0: Preview Queries (READ-ONLY)
+- Shows what will be archived before any changes
+- **Always run this first**
+
+#### SECTION A: Safe Operations (CAN BE RUN)
+- Creates `archive` schema
+- Moves unused tables to `archive` schema
+- Moves unused functions to `archive` schema
+- Disables unused triggers (does not delete)
+- Drops unused policies (cannot be moved, but can be recreated)
+- Moves unused views to `archive` schema
+- Includes verification queries
+
+#### SECTION B: Destructive Operations (COMMENTED OUT)
+- ⚠️ **DO NOT UNCOMMENT** unless you are certain archived objects are not needed
+- Permanently drops archived tables, functions, views
+- Can drop `archive` schema itself
+- **Requires manual confirmation before uncommenting**
+
+#### SECTION C: Revert Operations (COMMENTED OUT)
+- Restores archived tables to `public` schema
+- Restores archived functions to `public` schema
+- Re-enables disabled triggers
+- Restores archived views to `public` schema
+- **Use this if you need to restore archived objects**
+
+### Execution Plan
+
+1. **Run audit script** (`scripts/supabase_db_audit.sql`)
+   - Compare results with this inventory
+   - Identify any objects not documented here
+
+2. **Run preview queries** (Section 0 of cleanup script)
+   - Review what will be archived
+   - Verify no protected objects are listed
+
+3. **Run safe operations** (Section A)
+   - Archives unused objects
+   - Test application thoroughly
+
+4. **Verify application works**
+   - All functionality should work as before
+   - No errors related to missing database objects
+
+5. **After confirmation** (optional, not recommended)
+   - Uncomment Section B only if you are certain archived objects are not needed
+   - Have a database backup before running
+
+6. **If restoration needed**
+   - Uncomment Section C to restore archived objects
+
+### Revert Plan
+
+If you need to restore archived objects:
+
+1. Uncomment Section C in `scripts/supabase_cleanup.sql`
+2. Run the REVERT section
+3. All archived objects will be moved back to `public` schema
+4. Disabled triggers will be re-enabled
+5. Note: Dropped policies will need to be recreated from migrations
+
+---
+
 ## Verification Commands
 
 To verify this inventory against actual database:
@@ -247,5 +349,6 @@ FROM pg_policies
 WHERE schemaname = 'public';
 ```
 
-See `scripts/supabase_db_audit.sql` for complete audit script.
+See `scripts/supabase_db_audit.sql` for complete audit script.  
+See `scripts/supabase_cleanup.sql` for cleanup script with archive-first approach.
 
